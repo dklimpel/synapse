@@ -132,9 +132,18 @@ class CapabilitiesTestCase(unittest.HomeserverTestCase):
     @override_config({"enable_3pid_changes": False})
     def test_get_change_3pid_capabilities_3pid_disabled(self):
         access_token = self.login(self.localpart, self.password)
+        self._test_capability("m.change_3pid", access_token, False)
 
+    def _test_capability(self, capability: str, access_token: str, expect_success=True):
+        """
+        Create a media and return media_id and server_and_media_id
+        """
         channel = self.make_request("GET", self.url, access_token=access_token)
         capabilities = channel.json_body["capabilities"]
 
         self.assertEqual(channel.code, 200)
-        self.assertFalse(capabilities["m.change_3pid"]["enabled"])
+
+        if expect_success:
+            self.assertTrue(capabilities[capability]["enabled"])
+        else:
+            self.assertFalse(capabilities[capability]["enabled"])
