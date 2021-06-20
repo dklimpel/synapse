@@ -31,7 +31,6 @@ class CapabilitiesTestCase(unittest.HomeserverTestCase):
     def make_homeserver(self, reactor, clock):
         self.url = b"/_matrix/client/r0/capabilities"
         hs = self.setup_test_homeserver()
-        self.store = hs.get_datastore()
         self.config = hs.config
         self.auth_handler = hs.get_auth_handler()
         return hs
@@ -100,21 +99,24 @@ class CapabilitiesTestCase(unittest.HomeserverTestCase):
     @override_config({"enable_set_displayname": False})
     def test_get_change_displayname_capabilities_displayname_disabled(self):
         access_token = self.login(self.localpart, self.password)
+
         self._test_capability("m.change_displayname", access_token, False)
 
     @override_config({"enable_set_avatar_url": False})
     def test_get_change_avatar_url_capabilities_avatar_url_disabled(self):
         access_token = self.login(self.localpart, self.password)
+
         self._test_capability("m.change_avatar_url", access_token, False)
 
     @override_config({"enable_3pid_changes": False})
     def test_get_change_3pid_capabilities_3pid_disabled(self):
         access_token = self.login(self.localpart, self.password)
+
         self._test_capability("m.change_3pid", access_token, False)
 
     def _test_capability(self, capability: str, access_token: str, expect_success=True):
         """
-        Create a media and return media_id and server_and_media_id
+        Requests the capabilities of the server and check if this is expected.
         """
         channel = self.make_request("GET", self.url, access_token=access_token)
         capabilities = channel.json_body["capabilities"]
