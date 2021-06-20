@@ -74,7 +74,7 @@ class CapabilitiesTestCase(unittest.HomeserverTestCase):
             )
         )
 
-    self._test_capability("m.change_password", access_token, False)
+        self._test_capability("m.change_password", access_token, False)
 
     @override_config({"password_config": {"enabled": False}})
     def test_get_change_password_capabilities_password_disabled(self):
