@@ -64,11 +64,7 @@ class CapabilitiesTestCase(unittest.HomeserverTestCase):
     def test_get_change_password_capabilities_password_login(self):
         access_token = self.login(self.localpart, self.password)
 
-        channel = self.make_request("GET", self.url, access_token=access_token)
-        capabilities = channel.json_body["capabilities"]
-
-        self.assertEqual(channel.code, 200)
-        self.assertTrue(capabilities["m.change_password"]["enabled"])
+        self._test_capability("m.change_password", access_token, True)
 
     @override_config({"password_config": {"localdb_enabled": False}})
     def test_get_change_password_capabilities_localdb_disabled(self):
@@ -78,11 +74,7 @@ class CapabilitiesTestCase(unittest.HomeserverTestCase):
             )
         )
 
-        channel = self.make_request("GET", self.url, access_token=access_token)
-        capabilities = channel.json_body["capabilities"]
-
-        self.assertEqual(channel.code, 200)
-        self.assertFalse(capabilities["m.change_password"]["enabled"])
+    self._test_capability("m.change_password", access_token, False)
 
     @override_config({"password_config": {"enabled": False}})
     def test_get_change_password_capabilities_password_disabled(self):
@@ -92,11 +84,7 @@ class CapabilitiesTestCase(unittest.HomeserverTestCase):
             )
         )
 
-        channel = self.make_request("GET", self.url, access_token=access_token)
-        capabilities = channel.json_body["capabilities"]
-
-        self.assertEqual(channel.code, 200)
-        self.assertFalse(capabilities["m.change_password"]["enabled"])
+        self._test_capability("m.change_password", access_token, False)
 
     def test_get_change_users_attributes_capabilities(self):
         access_token = self.login(self.localpart, self.password)
@@ -112,22 +100,12 @@ class CapabilitiesTestCase(unittest.HomeserverTestCase):
     @override_config({"enable_set_displayname": False})
     def test_get_change_displayname_capabilities_displayname_disabled(self):
         access_token = self.login(self.localpart, self.password)
-
-        channel = self.make_request("GET", self.url, access_token=access_token)
-        capabilities = channel.json_body["capabilities"]
-
-        self.assertEqual(channel.code, 200)
-        self.assertFalse(capabilities["m.change_displayname"]["enabled"])
+        self._test_capability("m.change_displayname", access_token, False)
 
     @override_config({"enable_set_avatar_url": False})
     def test_get_change_avatar_url_capabilities_avatar_url_disabled(self):
         access_token = self.login(self.localpart, self.password)
-
-        channel = self.make_request("GET", self.url, access_token=access_token)
-        capabilities = channel.json_body["capabilities"]
-
-        self.assertEqual(channel.code, 200)
-        self.assertFalse(capabilities["m.change_avatar_url"]["enabled"])
+        self._test_capability("m.change_avatar_url", access_token, False)
 
     @override_config({"enable_3pid_changes": False})
     def test_get_change_3pid_capabilities_3pid_disabled(self):
