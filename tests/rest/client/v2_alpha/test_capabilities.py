@@ -101,13 +101,17 @@ class CapabilitiesTestCase(unittest.HomeserverTestCase):
     def test_get_change_displayname_capabilities_displayname_disabled(self):
         access_token = self.login(self.localpart, self.password)
 
-        self._test_capability("org.matrix.msc1234.change_displayname", access_token, False)
+        self._test_capability(
+            "org.matrix.msc1234.change_displayname", access_token, False
+        )
 
     @override_config({"enable_set_avatar_url": False})
     def test_get_change_avatar_url_capabilities_avatar_url_disabled(self):
         access_token = self.login(self.localpart, self.password)
 
-        self._test_capability("org.matrix.msc1234.change_avatar_url", access_token, False)
+        self._test_capability(
+            "org.matrix.msc1234.change_avatar_url", access_token, False
+        )
 
     @override_config({"enable_3pid_changes": False})
     def test_get_change_3pid_capabilities_3pid_disabled(self):
