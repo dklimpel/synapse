@@ -92,27 +92,27 @@ class CapabilitiesTestCase(unittest.HomeserverTestCase):
         capabilities = channel.json_body["capabilities"]
 
         self.assertEqual(channel.code, 200)
-        self.assertTrue(capabilities["m.change_displayname"]["enabled"])
-        self.assertTrue(capabilities["m.change_avatar_url"]["enabled"])
-        self.assertTrue(capabilities["m.change_3pid"]["enabled"])
+        self.assertIsNone(capabilities["org.matrix.msc1234.change_displayname"]["enabled"])
+        self.assertIsNone(capabilities["org.matrix.msc1234.change_avatar_url"]["enabled"])
+        self.assertIsNone(capabilities["org.matrix.msc1234.change_3pid"]["enabled"])
 
     @override_config({"enable_set_displayname": False})
     def test_get_change_displayname_capabilities_displayname_disabled(self):
         access_token = self.login(self.localpart, self.password)
 
-        self._test_capability("m.change_displayname", access_token, False)
+        self._test_capability("org.matrix.msc1234.change_displayname", access_token, False)
 
     @override_config({"enable_set_avatar_url": False})
     def test_get_change_avatar_url_capabilities_avatar_url_disabled(self):
         access_token = self.login(self.localpart, self.password)
 
-        self._test_capability("m.change_avatar_url", access_token, False)
+        self._test_capability("org.matrix.msc1234.change_avatar_url", access_token, False)
 
     @override_config({"enable_3pid_changes": False})
     def test_get_change_3pid_capabilities_3pid_disabled(self):
         access_token = self.login(self.localpart, self.password)
 
-        self._test_capability("m.change_3pid", access_token, False)
+        self._test_capability("org.matrix.msc1234.change_3pid", access_token, False)
 
     def _test_capability(self, capability: str, access_token: str, expect_success=True):
         """
