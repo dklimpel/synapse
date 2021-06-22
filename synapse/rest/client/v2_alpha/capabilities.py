@@ -79,12 +79,12 @@ class CapabilitiesRestServlet(RestServlet):
                     }
                 }
             )
-        if not self.config.change_3pid:
+        if not self.config.enable_3pid_changes:
             response.update(
                 {
                     "capabilities": {
                         "org.matrix.msc1234.change_3pid": {
-                            "enabled": self.config.change_3pid
+                            "enabled": self.config.enable_3pid_changes
                         }
                     }
                 }
