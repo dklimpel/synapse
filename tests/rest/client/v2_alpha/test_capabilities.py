@@ -92,9 +92,10 @@ class CapabilitiesTestCase(unittest.HomeserverTestCase):
         capabilities = channel.json_body["capabilities"]
 
         self.assertEqual(channel.code, 200)
+        self.assertTrue(capabilities["m.change_password"]["enabled"])
         self.assertNotIn("org.matrix.msc1234.change_displayname", capabilities)
-        self.assertIsNone(capabilities["org.matrix.msc1234.change_avatar_url"]["enabled"])
-        self.assertIsNone(capabilities["org.matrix.msc1234.change_3pid"]["enabled"])
+        self.assertNotIn("org.matrix.msc1234.change_avatar_url", capabilities)
+        self.assertNotIn("org.matrix.msc1234.change_3pid", capabilities)
 
     @override_config({"enable_set_displayname": False})
     def test_get_change_displayname_capabilities_displayname_disabled(self):
