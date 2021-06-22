@@ -92,7 +92,7 @@ class CapabilitiesTestCase(unittest.HomeserverTestCase):
         capabilities = channel.json_body["capabilities"]
 
         self.assertEqual(channel.code, 200)
-        self.assertIsNone(capabilities["org.matrix.msc1234.change_displayname"]["enabled"])
+        self.assertNotIn(capabilities["org.matrix.msc1234.change_displayname"]["enabled"])
         self.assertIsNone(capabilities["org.matrix.msc1234.change_avatar_url"]["enabled"])
         self.assertIsNone(capabilities["org.matrix.msc1234.change_3pid"]["enabled"])
 
