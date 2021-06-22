@@ -56,13 +56,39 @@ class CapabilitiesRestServlet(RestServlet):
             }
         }
 
-        # add this to response only if set to `false` (not default) 
+        # Add this to response only if set to `false` (not default)
+        # because it is experimental
+        # This needs an update after release msc1234. Then it will always be available
         if not self.config.enable_set_displayname:
-            response.update({"capabilities": {"m.change_displayname": {"enabled": self.config.enable_set_displayname}}})
+            response.update(
+                {
+                    "capabilities": {
+                        "org.matrix.msc1234.change_displayname": {
+                            "enabled": self.config.enable_set_displayname
+                        }
+                    }
+                }
+            )
         if not self.config.enable_set_avatar_url:
-            response.update({"m.change_avatar_url": {"enabled": self.config.enable_set_avatar_url}})
+            response.update(
+                {
+                    "capabilities": {
+                        "org.matrix.msc1234.change_avatar_url": {
+                            "enabled": self.config.enable_set_avatar_url
+                        }
+                    }
+                }
+            )
         if not self.config.change_3pid:
-            response.update({"m.change_3pid": {"enabled": self.config.change_3pid}})
+            response.update(
+                {
+                    "capabilities": {
+                        "org.matrix.msc1234.change_3pid": {
+                            "enabled": self.config.change_3pid
+                        }
+                    }
+                }
+            )
 
         return 200, response
 
