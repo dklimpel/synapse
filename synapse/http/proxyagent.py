@@ -123,10 +123,7 @@ class ProxyAgent(_AgentBase):
             no_proxy = proxies["no"] if "no" in proxies else None
 
         # Parse credentials from https proxy connection string if present
-        _, https_proxy_host_with_creds, _ = parse_proxy(bytes(str(https_proxy), "utf-8"), b"https")
-        self.https_proxy_creds, https_proxy = parse_username_password(
-            https_proxy_host_with_creds
-        )
+        self.https_proxy_creds = parse_username_password(https_proxy)
 
         self.http_proxy_endpoint = _http_proxy_endpoint(
             http_proxy, self.proxy_reactor, contextFactory, **self._endpoint_kwargs
@@ -296,22 +293,22 @@ def _http_proxy_endpoint(
 def parse_username_password(proxy: bytes) -> Tuple[Optional[ProxyCredentials], bytes]:
     """
     Parses the username and password from a proxy declaration e.g
-    username:password@hostname:port.
+    username:password@hostname:port or https://username:password@hostname:port
 
     Args:
         proxy: The proxy connection string.
 
     Returns
-        An instance of ProxyCredentials and the proxy connection string with any credentials
-        stripped, i.e u:p@host:port -> host:port. If no credentials were found, the
+        An instance of ProxyCredentials. If no credentials were found, the
         ProxyCredentials instance is replaced with None.
     """
     if proxy and b"@" in proxy:
+        _, host, _ = parse_proxy(proxy)
         # We use rsplit here as the password could contain an @ character
-        credentials, proxy_without_credentials = proxy.rsplit(b"@", 1)
-        return ProxyCredentials(credentials), proxy_without_credentials
+        credentials = host.rsplit(b"@", 1)[0]
+        return ProxyCredentials(credentials)
 
-    return None, proxy
+    return None
 
 
 def parse_proxy(
