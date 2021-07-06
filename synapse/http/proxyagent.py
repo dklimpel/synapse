@@ -311,7 +311,7 @@ def parse_username_password(proxy: bytes) -> Tuple[Optional[ProxyCredentials], b
             ProxyCredentials(credentials),
             b"".join(
                 [scheme, b"://", proxy_without_credentials, b":", str(port).encode()]
-            )
+            ),
         )
 
     return None, proxy
