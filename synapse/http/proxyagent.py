@@ -123,7 +123,9 @@ class ProxyAgent(_AgentBase):
             no_proxy = proxies["no"] if "no" in proxies else None
 
         # Parse credentials from https proxy connection string if present
-        self.https_proxy_creds, https_proxy = parse_username_password(https_proxy)
+        self.https_proxy_creds, https_proxy = parse_username_password(
+            parse_proxy(https_proxy, b"https")
+        )
 
         self.http_proxy_endpoint = _http_proxy_endpoint(
             http_proxy, self.proxy_reactor, contextFactory, **self._endpoint_kwargs
