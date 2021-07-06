@@ -123,7 +123,7 @@ class ProxyAgent(_AgentBase):
             no_proxy = proxies["no"] if "no" in proxies else None
 
         # Parse credentials from https proxy connection string if present
-        _, https_proxy_host_with_creds, _ = parse_proxy(https_proxy, b"https")
+        _, https_proxy_host_with_creds, _ = parse_proxy(bytes(https_proxy, "utf-8"), b"https")
         self.https_proxy_creds, https_proxy = parse_username_password(
             https_proxy_host_with_creds
         )
