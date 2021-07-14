@@ -303,8 +303,8 @@ def parse_username_password(proxy: bytes) -> Tuple[Optional[ProxyCredentials], b
         stripped, i.e u:p@host:port -> host:port. If no credentials were found, the
         ProxyCredentials instance is replaced with None.
     """
-    scheme, host, port = parse_proxy(proxy)
     if proxy and b"@" in proxy:
+        scheme, host, port = parse_proxy(proxy)
         # We use rsplit here as the password could contain an @ character
        credentials, proxy_without_credentials = host.rsplit(b"@", 1)
        return (
