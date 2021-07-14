@@ -86,6 +86,25 @@ class ProxyParserTests(TestCase):
         # ipv4+scheme
         [b"https://1.2.3.4", b"https", b"1.2.3.4", 1080, None],
         [b"https://1.2.3.4:9988", b"https", b"1.2.3.4", 9988, None],
+        # ipv6 - broken
+        """
+        [
+            b"2001:0db8:85a3:0000:0000:8a2e:0370:effe",
+            b"http",
+            b"2001:0db8:85a3:0000:0000:8a2e:0370:effe",
+            1080,
+            None
+        ],
+        [
+            b"2001:0db8:85a3:0000:0000:8a2e:0370:1234",
+            b"http",
+            b"2001:0db8:85a3:0000:0000:8a2e:0370:1234",
+            1080,
+            None
+        ],
+        """
+        [b"::1", b"http", b"::1", 1080, None],
+        [b"::ffff:0.0.0.0", b"http", b"::ffff:0.0.0.0", 1080, None],
     ])
     def test_parse_proxy(
             self,
