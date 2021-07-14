@@ -119,7 +119,7 @@ class ProxyParserTests(TestCase):
 
         # also broken
         url = b"::1"
-        #self.assertEqual((b"http", b"::1", 1080, None), parse_proxy(url))
+        self.assertEqual((b"http", b"::1", 1080, None), parse_proxy(url))
         url = b"::ffff:0.0.0.0"
         #self.assertEqual((b"http", b"::ffff:0.0.0.0", 1080, None), parse_proxy(url))
 
