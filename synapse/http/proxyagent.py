@@ -295,6 +295,9 @@ def parse_proxy(
     proxy: bytes, default_scheme: bytes = b"http", default_port: int = 1080
 ) -> Tuple[bytes, bytes, int, Optional[ProxyCredentials]]:
     """
+    Given a HTTP proxy URL, breaks it down into components and checks that it
+    has a hostname (otherwise it is not right useful to us trying to find a
+    proxy) and asserts that the URL has the scheme as that is all we support.
     Parse the scheme, username, password, hostname and port from a proxy connection byte string.
 
     Args:
