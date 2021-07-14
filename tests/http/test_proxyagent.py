@@ -46,6 +46,7 @@ HTTPFactory = Factory.forProtocol(HTTPChannel)
 
 
 class ProxyParserTests(TestCase):
+    """
     @parameterized.expand([
         # IPv4 + Port
         [b"https://1.2.3.4:9988", b"https://1.2.3.4:9988", None],
@@ -70,6 +71,7 @@ class ProxyParserTests(TestCase):
             (proxy_cred, proxy_without_credentials),
             parse_username_password(proxy),
         )
+    """
 
     def test_parse_proxy_host_only(self):
         url = b"localhost"
