@@ -73,25 +73,45 @@ class CapabilitiesTestCase(unittest.HomeserverTestCase):
             )
         )
 
-        channel = self.make_request("GET", self.url, access_token=access_token)
-        capabilities = channel.json_body["capabilities"]
-
-        self.assertEqual(channel.code, 200)
-        self.assertFalse(capabilities["m.change_password"]["enabled"])
+        self._test_capability("m.change_password", access_token, False)
 
     @override_config({"password_config": {"enabled": False}})
     def test_get_change_password_capabilities_password_disabled(self):
-        localpart = "user"
-        password = "pass"
-        user = self.register_user(localpart, password)
         access_token = self.get_success(
             self.auth_handler.get_access_token_for_user_id(
-                user, device_id=None, valid_until_ms=None
+                self.user, device_id=None, valid_until_ms=None
             )
         )
+
+        self._test_capability("m.change_password", access_token, False)
+    def test_get_change_users_attributes_capabilities(self):
+        access_token = self.login(self.localpart, self.password)
 
         channel = self.make_request("GET", self.url, access_token=access_token)
         capabilities = channel.json_body["capabilities"]
 
         self.assertEqual(channel.code, 200)
-        self.assertFalse(capabilities["m.change_password"]["enabled"])
+        self.assertTrue(capabilities["m.change_password"]["enabled"])
+        self.assertNotIn("org.matrix.msc3283.enable_set_displayname", capabilities)
+
+    @override_config({"enable_set_displayname": False})
+    def test_get_change_displayname_capabilities_displayname_disabled(self):
+        access_token = self.login(self.localpart, self.password)
+
+        self._test_capability(
+            "org.matrix.msc3283.enable_set_displayname", access_token, False
+        )
+
+    def _test_capability(self, capability: str, access_token: str, expect_success=True):
+        """
+        Requests the capabilities of the server and check if this is expected.
+        """
+        channel = self.make_request("GET", self.url, access_token=access_token)
+        capabilities = channel.json_body["capabilities"]
+
+        self.assertEqual(channel.code, 200)
+
+        if expect_success:
+            self.assertTrue(capabilities[capability]["enabled"])
+        else:
+            self.assertFalse(capabilities[capability]["enabled"])
