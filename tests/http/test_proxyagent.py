@@ -47,10 +47,16 @@ HTTPFactory = Factory.forProtocol(HTTPChannel)
 
 class ProxyParserTests(TestCase):
     @parameterized.expand([
+        # IP+Port
         [b"https://1.2.3.4:9988", b"https://1.2.3.4:9988", None],
         [b"https://user:pass@1.2.3.4:9988", b"https://1.2.3.4:9988", b"user:pass"],
         [b"1.2.3.4:9988", b"1.2.3.4:9988", None],
         [b"user:pass@1.2.3.4:9988", b"1.2.3.4:9988", b"user:pass"],
+        # Domain+Port
+        [b"https://proxy.local:9988", b"https://proxy.local:9988", None],
+        [b"https://user:pass@proxy.local:9988", b"https://proxy.local:9988", b"user:pass"],
+        [b"1.2.3.4:9988", b"proxy.local:9988", None],
+        [b"user:pass@proxy.local:9988", b"proxy.local:9988", b"user:pass"],
     ])
     def test_parse_username_password(
             self, proxy: bytes, proxy_without_credentials: bytes, credentials: Optional[bytes]
