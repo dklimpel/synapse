@@ -85,7 +85,8 @@ class ProxyAgent(_AgentBase):
             from conventional environment variables.
             A proxy without scheme is assumed to be http.
 
-    Raises: ValueError if given a proxy with a scheme we don't support.
+    Raises:
+        ValueError if given a proxy with a scheme we don't support.
     """
 
     def __init__(
@@ -275,7 +276,8 @@ def _http_proxy_endpoint(
     if proxy is None:
         return None
 
-    # Note: we can't use urlsplit/urlparse as that is completely broken for things without a scheme://
+    # Note: urlsplit/urlparse cannot be used here as that does not work (for Python
+    # 3.9+) on scheme-less proxies, e.g. host:port.
     scheme, host, port = parse_proxy(proxy)
 
     if scheme not in (b"http", b"https"):
@@ -319,7 +321,7 @@ def parse_username_password(proxy: bytes) -> Tuple[Optional[ProxyCredentials], b
 
 def parse_proxy(
     proxy: bytes, default_scheme: bytes = b"http", default_port: int = 1080
-) -> Tuple[bytes, bytes, int]:
+) -> Tuple[bytes, bytes, int, Optional[ProxyCredentials]]:
     """
     Parse the scheme, hostname and port from a proxy connection byte string.
 
@@ -330,22 +332,26 @@ def parse_proxy(
 
     Returns:
         A tuple containing the scheme, hostname and port.
+
+    Raise:
+        TODO
     """
     # First check if we have a scheme present
     if not b"://" in proxy:
         proxy = b"".join([default_scheme, b"://", proxy])
-    else:
-        scheme, host = default_scheme, proxy
-    # Now check the leftover part for a port
-    if b":" in host:
-        new_host, port = host.rsplit(b":", 1)
-        try:
-            port = int(port)
-            return scheme, new_host, port
-        except ValueError:
-            # the thing after the : wasn't a valid port; presumably this is an
-            # IPv6 address.
-            # TODO: this doesn't work when the last part of the IP is also just a number.
-            #  We probably need to require ipv6's being wrapped in square brackets: [2001:db8:0:0:1::1]
-            pass
-    return scheme, host, default_port
+
+    url = urlparse(proxy_url)
+
+    if not url.hostname:
+        raise RuntimeError("Proxy URL did not contain a hostname! Please specify one.")
+
+    if url.scheme != "http" && url.scheme != "https":
+        raise RuntimeError(
+            f"Unknown proxy scheme {url.scheme}; only 'http' and 'https' is supported."
+        )
+
+    credentials = None
+    if url.username and url.password:
+        credentials = (url.username, url.password)
+
+    return url.scheme, url.hostname, url.port or default_port, credentials=credentials
