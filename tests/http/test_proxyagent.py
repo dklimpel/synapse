@@ -121,19 +121,19 @@ class ProxyParserTests(TestCase):
         self.assertEqual((b"http", b"::ffff:0.0.0.0", 1080, None), parse_proxy(url))
 
     def test_parse_proxy_host_port_ipv6(self):
-        url = b"2001:0db8:85a3:0000:0000:8a2e:0370:effe:9988"
+        url = b"[2001:0db8:85a3:0000:0000:8a2e:0370:effe]:9988"
         self.assertEqual(
             (b"http", b"2001:0db8:85a3:0000:0000:8a2e:0370:effe", 9988, None),
             parse_proxy(url),
         )
 
         # currently broken
-        url = b"2001:0db8:85a3:0000:0000:8a2e:0370:1234:9988"
+        url = b"[2001:0db8:85a3:0000:0000:8a2e:0370:1234]:9988"
         self.assertEqual((b"http", b"2001:0db8:85a3:0000:0000:8a2e:0370:1234", 9988, None), parse_proxy(url))
 
-        url = b"::1:9988"
+        url = b"[::1]:9988"
         self.assertEqual((b"http", b"::1", 9988, None), parse_proxy(url))
-        url = b"::ffff:0.0.0.0:9988"
+        url = b"[::ffff:0.0.0.0]:9988"
         self.assertEqual((b"http", b"::ffff:0.0.0.0", 9988, None), parse_proxy(url))
 
     def test_parse_proxy_scheme_host_ipv6(self):
@@ -150,18 +150,18 @@ class ProxyParserTests(TestCase):
         # also broken
         url = b"https://::1"
         self.assertEqual((b"https", b"::1", 1080, None), parse_proxy(url))
-        url = b"https://::ffff:0.0.0.0:1080"
+        url = b"https://[::ffff:0.0.0.0]:1080"
         self.assertEqual((b"https", b"::ffff:0.0.0.0", 1080, None), parse_proxy(url))
 
     def test_parse_proxy_scheme_host_port_ipv6(self):
-        url = b"https://2001:0db8:85a3:0000:0000:8a2e:0370:effe:9988"
+        url = b"https://[2001:0db8:85a3:0000:0000:8a2e:0370:effe]:9988"
         self.assertEqual(
             (b"https", b"2001:0db8:85a3:0000:0000:8a2e:0370:effe", 9988, None),
             parse_proxy(url),
         )
 
         # currently broken
-        url = b"https://2001:0db8:85a3:0000:0000:8a2e:0370:1234:9988"
+        url = b"https://[2001:0db8:85a3:0000:0000:8a2e:0370:1234]:9988"
         self.assertEqual((b"https", b"2001:0db8:85a3:0000:0000:8a2e:0370:1234", 9988, None), parse_proxy(url))
 
         url = b"https://::1:9988"
