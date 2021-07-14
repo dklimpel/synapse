@@ -346,7 +346,7 @@ def parse_proxy(
     if not url.hostname:
         raise RuntimeError("Proxy URL did not contain a hostname! Please specify one.")
 
-    if url.scheme not in ["http", "https"]:
+    if url.scheme not in [b"http", b"https"]:
         raise RuntimeError(
             f"Unknown proxy scheme {url.scheme}; only 'http' and 'https' is supported."
         )
