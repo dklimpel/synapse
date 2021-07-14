@@ -123,14 +123,11 @@ class ProxyAgent(_AgentBase):
             https_proxy = proxies["https"].encode() if "https" in proxies else None
             no_proxy = proxies["no"] if "no" in proxies else None
 
-        # Parse credentials from https proxy connection string if present
-        self.https_proxy_creds, https_proxy = parse_username_password(https_proxy)
-
-        self.http_proxy_endpoint = _http_proxy_endpoint(
+        self.http_proxy_endpoint, self.http_proxy_creds = _http_proxy_endpoint(
             http_proxy, self.proxy_reactor, contextFactory, **self._endpoint_kwargs
         )
 
-        self.https_proxy_endpoint = _http_proxy_endpoint(
+        self.https_proxy_endpoint, self.https_proxy_creds = _http_proxy_endpoint(
             https_proxy, self.proxy_reactor, contextFactory, **self._endpoint_kwargs
         )
 
@@ -274,7 +271,7 @@ def _http_proxy_endpoint(
     Raises: ValueError if given a proxy with a scheme we don't support.
     """
     if proxy is None:
-        return None
+        return None, None
 
     # Note: urlsplit/urlparse cannot be used here as that does not work (for Python
     # 3.9+) on scheme-less proxies, e.g. host:port.
@@ -289,7 +286,7 @@ def _http_proxy_endpoint(
         tls_options = tls_options_factory.creatorForNetloc(host, port)
         proxy_endpoint = wrapClientTLS(tls_options, proxy_endpoint)
 
-    return proxy_endpoint
+    return proxy_endpoint, credentials
 
 
 def parse_username_password(proxy: bytes) -> Tuple[Optional[ProxyCredentials], bytes]:
@@ -355,6 +352,6 @@ def parse_proxy(
 
     credentials = None
     if url.username and url.password:
-        credentials = (url.username, url.password)
+        credentials = ProxyCredentials("".join([url.username], [url.password]))
 
     return url.scheme, url.hostname, url.port or default_port, credentials
