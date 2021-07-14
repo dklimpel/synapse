@@ -671,7 +671,6 @@ class MatrixFederationAgentTests(TestCase):
 
     @patch.dict(os.environ, {"http_proxy": "socks://proxy.com:8888"})
     def test_proxy_with_unsupported_scheme(self):
-        #with self.assertRaises(ValueError):
         with self.assertRaises(RuntimeError):
             _ = ProxyAgent(self.reactor, use_proxy=True)
 
