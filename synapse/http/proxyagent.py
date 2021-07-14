@@ -354,4 +354,4 @@ def parse_proxy(
     if url.username and url.password:
         credentials = (url.username, url.password)
 
-    return url.scheme, url.hostname, url.port or default_port, credentials=credentials
+    return url.scheme, url.hostname, url.port or default_port, credentials
