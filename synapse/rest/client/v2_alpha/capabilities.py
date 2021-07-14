@@ -55,6 +55,21 @@ class CapabilitiesRestServlet(RestServlet):
                 "m.change_password": {"enabled": change_password},
             }
         }
+
+        # Add this to response only if `enable_set_displayname` is set to `false` (not default)
+        # because it is experimental
+        # This needs an update after release msc3283. Then it will be always available.
+        if not self.config.enable_set_displayname:
+            response.update(
+                {
+                    "capabilities": {
+                        "org.matrix.msc3283.enable_set_displayname": {
+                            "enabled": self.config.enable_set_displayname
+                        }
+                    }
+                }
+            )
+
         return 200, response
 
 
