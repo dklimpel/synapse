@@ -74,8 +74,18 @@ class ProxyParserTests(TestCase):
     """
 
     @parameterized.expand([
+        # host
         [b"localhost", b"http", b"localhost", 1080, None],
         [b"localhost:9988", b"http", b"localhost", 9988, None],
+        # host+scheme
+        [b"https://localhost", b"https", b"localhost", 1080, None],
+        [b"https://localhost:1234", b"https", b"localhost", 1234, None],
+        # ipv4
+        [b"1.2.3.4", b"http", b"1.2.3.4", 1080, None],
+        [b"1.2.3.4:9988", b"http", b"1.2.3.4", 9988, None],
+        # ipv4+scheme
+        [b"https://1.2.3.4", b"https", b"1.2.3.4", 1080, None],
+        [b"https://1.2.3.4:9988", b"https", b"1.2.3.4", 9988, None],
     ])
     def test_parse_proxy(
             self,
@@ -89,38 +99,6 @@ class ProxyParserTests(TestCase):
         if credentials:
             cred = ProxyCredentials(credentials)
         self.assertEqual((scheme, hostname, port, cred), parse_proxy(proxy))
-
-    def test_parse_proxy_host_only(self):
-        url = b"localhost"
-        self.assertEqual((b"http", b"localhost", 1080, None), parse_proxy(url))
-
-    def test_parse_proxy_host_port(self):
-        url = b"localhost:9988"
-        self.assertEqual((b"http", b"localhost", 9988, None), parse_proxy(url))
-
-    def test_parse_proxy_scheme_host(self):
-        url = b"https://localhost"
-        self.assertEqual((b"https", b"localhost", 1080, None), parse_proxy(url))
-
-    def test_parse_proxy_scheme_host_port(self):
-        url = b"https://localhost:1234"
-        self.assertEqual((b"https", b"localhost", 1234, None), parse_proxy(url))
-
-    def test_parse_proxy_host_only_ipv4(self):
-        url = b"1.2.3.4"
-        self.assertEqual((b"http", b"1.2.3.4", 1080, None), parse_proxy(url))
-
-    def test_parse_proxy_host_port_ipv4(self):
-        url = b"1.2.3.4:9988"
-        self.assertEqual((b"http", b"1.2.3.4", 9988, None), parse_proxy(url))
-
-    def test_parse_proxy_scheme_host_ipv4(self):
-        url = b"https://1.2.3.4"
-        self.assertEqual((b"https", b"1.2.3.4", 1080, None), parse_proxy(url))
-
-    def test_parse_proxy_scheme_host_port_ipv4(self):
-        url = b"https://1.2.3.4:9988"
-        self.assertEqual((b"https", b"1.2.3.4", 9988, None), parse_proxy(url))
 
     def test_parse_proxy_host_ipv6(self):
         # broken
