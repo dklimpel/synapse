@@ -82,8 +82,7 @@ class ProxyAgent(_AgentBase):
 
         use_proxy (bool): Whether proxy settings should be discovered and used
             from conventional environment variables.
-            This currently supports http:// and https:// proxies.
-            A hostname without scheme is assumed to be http.
+            A proxy without scheme is assumed to be http.
 
     Raises: ValueError if given a proxy with a scheme we don't support.
     """
@@ -227,7 +226,7 @@ class ProxyAgent(_AgentBase):
                 self._reactor, parsed_uri.host, parsed_uri.port, **self._endpoint_kwargs
             )
 
-        logger.debug("Requesting %s via %s", uri, endpoint)
+        logger.debug(f"Requesting {uri} via {endpoint}")
 
         if parsed_uri.scheme == b"https":
             tls_connection_creator = self._policy_for_https.creatorForNetloc(
@@ -279,7 +278,7 @@ def _http_proxy_endpoint(
     scheme, host, port = parse_proxy(proxy)
 
     if scheme not in (b"http", b"https"):
-        raise ValueError("Proxy scheme '{}' not supported".format(scheme.decode()))
+        raise ValueError(f"Proxy scheme '{scheme.decode()}' not supported")
 
     proxy_endpoint = HostnameEndpoint(reactor, host, port, **kwargs)
 
