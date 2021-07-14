@@ -301,7 +301,7 @@ def parse_proxy(
     Parse the scheme, username, password, hostname and port from a proxy connection byte string.
 
     Args:
-        proxy: The proxy connection string. Must be in the form '[scheme://][username:password@]host[:port]'.
+        proxy: The proxy connection string. Must be in the form '[scheme://][<username>:<password>@]host[:port]'.
         default_scheme: The default scheme to return if one is not found in `proxy`. Defaults to http
         default_port: The default port to return if one is not found in `proxy`. Defaults to 1080
 
