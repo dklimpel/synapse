@@ -47,12 +47,12 @@ HTTPFactory = Factory.forProtocol(HTTPChannel)
 
 class ProxyParserTests(TestCase):
     @parameterized.expand([
-        # IP+Port
+        # IPv4 + Port
         [b"https://1.2.3.4:9988", b"https://1.2.3.4:9988", None],
         [b"https://user:pass@1.2.3.4:9988", b"https://1.2.3.4:9988", b"user:pass"],
         [b"1.2.3.4:9988", b"1.2.3.4:9988", None],
         [b"user:pass@1.2.3.4:9988", b"1.2.3.4:9988", b"user:pass"],
-        # Domain+Port
+        # Domain + Port
         [b"https://proxy.local:9988", b"https://proxy.local:9988", None],
         [b"https://user:pass@proxy.local:9988", b"https://proxy.local:9988", b"user:pass"],
         [b"proxy.local:9988", b"proxy.local:9988", None],
@@ -112,11 +112,11 @@ class ProxyParserTests(TestCase):
 
         # currently broken
         url = b"2001:0db8:85a3:0000:0000:8a2e:0370:1234"
-        # self.assertEqual((b"http", b"2001:0db8:85a3:0000:0000:8a2e:0370:1234", 1080), parse_proxy(url))
+        self.assertEqual((b"http", b"2001:0db8:85a3:0000:0000:8a2e:0370:1234", 1080), parse_proxy(url))
 
         # also broken
         url = b"::1"
-        # self.assertEqual((b"http", b"::1", 1080), parse_proxy(url))
+        self.assertEqual((b"http", b"::1", 1080), parse_proxy(url))
         url = b"::ffff:0.0.0.0"
         self.assertEqual((b"http", b"::ffff:0.0.0.0", 1080), parse_proxy(url))
 
@@ -129,7 +129,7 @@ class ProxyParserTests(TestCase):
 
         # currently broken
         url = b"2001:0db8:85a3:0000:0000:8a2e:0370:1234:9988"
-        # self.assertEqual((b"http", b"2001:0db8:85a3:0000:0000:8a2e:0370:1234", 9988), parse_proxy(url))
+        self.assertEqual((b"http", b"2001:0db8:85a3:0000:0000:8a2e:0370:1234", 9988), parse_proxy(url))
 
         url = b"::1:9988"
         self.assertEqual((b"http", b"::1", 9988), parse_proxy(url))
@@ -145,11 +145,11 @@ class ProxyParserTests(TestCase):
 
         # currently broken
         url = b"https://2001:0db8:85a3:0000:0000:8a2e:0370:1234"
-        # self.assertEqual((b"https", b"2001:0db8:85a3:0000:0000:8a2e:0370:1234", 1080), parse_proxy(url))
+        self.assertEqual((b"https", b"2001:0db8:85a3:0000:0000:8a2e:0370:1234", 1080), parse_proxy(url))
 
         # also broken
         url = b"https://::1"
-        # self.assertEqual((b"https", b"::1", 1080), parse_proxy(url))
+        self.assertEqual((b"https", b"::1", 1080), parse_proxy(url))
         url = b"https://::ffff:0.0.0.0:1080"
         self.assertEqual((b"https", b"::ffff:0.0.0.0", 1080), parse_proxy(url))
 
@@ -162,7 +162,7 @@ class ProxyParserTests(TestCase):
 
         # currently broken
         url = b"https://2001:0db8:85a3:0000:0000:8a2e:0370:1234:9988"
-        # self.assertEqual((b"https", b"2001:0db8:85a3:0000:0000:8a2e:0370:1234", 9988), parse_proxy(url))
+        self.assertEqual((b"https", b"2001:0db8:85a3:0000:0000:8a2e:0370:1234", 9988), parse_proxy(url))
 
         url = b"https://::1:9988"
         self.assertEqual((b"https", b"::1", 9988), parse_proxy(url))
