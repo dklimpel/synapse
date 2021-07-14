@@ -73,101 +73,101 @@ class ProxyParserTests(TestCase):
 
     def test_parse_proxy_host_only(self):
         url = b"localhost"
-        self.assertEqual((b"http", b"localhost", 1080), parse_proxy(url))
+        self.assertEqual((b"http", b"localhost", 1080, None), parse_proxy(url))
 
     def test_parse_proxy_host_port(self):
         url = b"localhost:9988"
-        self.assertEqual((b"http", b"localhost", 9988), parse_proxy(url))
+        self.assertEqual((b"http", b"localhost", 9988, None), parse_proxy(url))
 
     def test_parse_proxy_scheme_host(self):
         url = b"https://localhost"
-        self.assertEqual((b"https", b"localhost", 1080), parse_proxy(url))
+        self.assertEqual((b"https", b"localhost", 1080, None), parse_proxy(url))
 
     def test_parse_proxy_scheme_host_port(self):
         url = b"https://localhost:1234"
-        self.assertEqual((b"https", b"localhost", 1234), parse_proxy(url))
+        self.assertEqual((b"https", b"localhost", 1234, None), parse_proxy(url))
 
     def test_parse_proxy_host_only_ipv4(self):
         url = b"1.2.3.4"
-        self.assertEqual((b"http", b"1.2.3.4", 1080), parse_proxy(url))
+        self.assertEqual((b"http", b"1.2.3.4", 1080, None), parse_proxy(url))
 
     def test_parse_proxy_host_port_ipv4(self):
         url = b"1.2.3.4:9988"
-        self.assertEqual((b"http", b"1.2.3.4", 9988), parse_proxy(url))
+        self.assertEqual((b"http", b"1.2.3.4", 9988, None), parse_proxy(url))
 
     def test_parse_proxy_scheme_host_ipv4(self):
         url = b"https://1.2.3.4"
-        self.assertEqual((b"https", b"1.2.3.4", 1080), parse_proxy(url))
+        self.assertEqual((b"https", b"1.2.3.4", 1080, None), parse_proxy(url))
 
     def test_parse_proxy_scheme_host_port_ipv4(self):
         url = b"https://1.2.3.4:9988"
-        self.assertEqual((b"https", b"1.2.3.4", 9988), parse_proxy(url))
+        self.assertEqual((b"https", b"1.2.3.4", 9988, None), parse_proxy(url))
 
     def test_parse_proxy_host_ipv6(self):
         url = b"2001:0db8:85a3:0000:0000:8a2e:0370:effe"
         self.assertEqual(
-            (b"http", b"2001:0db8:85a3:0000:0000:8a2e:0370:effe", 1080),
+            (b"http", b"2001:0db8:85a3:0000:0000:8a2e:0370:effe", 1080, None),
             parse_proxy(url),
         )
 
         # currently broken
         url = b"2001:0db8:85a3:0000:0000:8a2e:0370:1234"
-        self.assertEqual((b"http", b"2001:0db8:85a3:0000:0000:8a2e:0370:1234", 1080), parse_proxy(url))
+        self.assertEqual((b"http", b"2001:0db8:85a3:0000:0000:8a2e:0370:1234", 1080, None), parse_proxy(url))
 
         # also broken
         url = b"::1"
-        self.assertEqual((b"http", b"::1", 1080), parse_proxy(url))
+        self.assertEqual((b"http", b"::1", 1080, None), parse_proxy(url))
         url = b"::ffff:0.0.0.0"
-        self.assertEqual((b"http", b"::ffff:0.0.0.0", 1080), parse_proxy(url))
+        self.assertEqual((b"http", b"::ffff:0.0.0.0", 1080, None), parse_proxy(url))
 
     def test_parse_proxy_host_port_ipv6(self):
         url = b"2001:0db8:85a3:0000:0000:8a2e:0370:effe:9988"
         self.assertEqual(
-            (b"http", b"2001:0db8:85a3:0000:0000:8a2e:0370:effe", 9988),
+            (b"http", b"2001:0db8:85a3:0000:0000:8a2e:0370:effe", 9988, None),
             parse_proxy(url),
         )
 
         # currently broken
         url = b"2001:0db8:85a3:0000:0000:8a2e:0370:1234:9988"
-        self.assertEqual((b"http", b"2001:0db8:85a3:0000:0000:8a2e:0370:1234", 9988), parse_proxy(url))
+        self.assertEqual((b"http", b"2001:0db8:85a3:0000:0000:8a2e:0370:1234", 9988, None), parse_proxy(url))
 
         url = b"::1:9988"
-        self.assertEqual((b"http", b"::1", 9988), parse_proxy(url))
+        self.assertEqual((b"http", b"::1", 9988, None), parse_proxy(url))
         url = b"::ffff:0.0.0.0:9988"
-        self.assertEqual((b"http", b"::ffff:0.0.0.0", 9988), parse_proxy(url))
+        self.assertEqual((b"http", b"::ffff:0.0.0.0", 9988, None), parse_proxy(url))
 
     def test_parse_proxy_scheme_host_ipv6(self):
         url = b"https://2001:0db8:85a3:0000:0000:8a2e:0370:effe"
         self.assertEqual(
-            (b"https", b"2001:0db8:85a3:0000:0000:8a2e:0370:effe", 1080),
+            (b"https", b"2001:0db8:85a3:0000:0000:8a2e:0370:effe", 1080, None),
             parse_proxy(url),
         )
 
         # currently broken
         url = b"https://2001:0db8:85a3:0000:0000:8a2e:0370:1234"
-        self.assertEqual((b"https", b"2001:0db8:85a3:0000:0000:8a2e:0370:1234", 1080), parse_proxy(url))
+        self.assertEqual((b"https", b"2001:0db8:85a3:0000:0000:8a2e:0370:1234", 1080, None), parse_proxy(url))
 
         # also broken
         url = b"https://::1"
-        self.assertEqual((b"https", b"::1", 1080), parse_proxy(url))
+        self.assertEqual((b"https", b"::1", 1080, None), parse_proxy(url))
         url = b"https://::ffff:0.0.0.0:1080"
-        self.assertEqual((b"https", b"::ffff:0.0.0.0", 1080), parse_proxy(url))
+        self.assertEqual((b"https", b"::ffff:0.0.0.0", 1080, None), parse_proxy(url))
 
     def test_parse_proxy_scheme_host_port_ipv6(self):
         url = b"https://2001:0db8:85a3:0000:0000:8a2e:0370:effe:9988"
         self.assertEqual(
-            (b"https", b"2001:0db8:85a3:0000:0000:8a2e:0370:effe", 9988),
+            (b"https", b"2001:0db8:85a3:0000:0000:8a2e:0370:effe", 9988, None),
             parse_proxy(url),
         )
 
         # currently broken
         url = b"https://2001:0db8:85a3:0000:0000:8a2e:0370:1234:9988"
-        self.assertEqual((b"https", b"2001:0db8:85a3:0000:0000:8a2e:0370:1234", 9988), parse_proxy(url))
+        self.assertEqual((b"https", b"2001:0db8:85a3:0000:0000:8a2e:0370:1234", 9988, None), parse_proxy(url))
 
         url = b"https://::1:9988"
-        self.assertEqual((b"https", b"::1", 9988), parse_proxy(url))
+        self.assertEqual((b"https", b"::1", 9988, None), parse_proxy(url))
         url = b"https://::ffff:0.0.0.0:9988"
-        self.assertEqual((b"https", b"::ffff:0.0.0.0", 9988), parse_proxy(url))
+        self.assertEqual((b"https", b"::ffff:0.0.0.0", 9988, None), parse_proxy(url))
 
 
 class MatrixFederationAgentTests(TestCase):
