@@ -86,6 +86,13 @@ class CapabilitiesTestCase(unittest.HomeserverTestCase):
         self._test_capability("m.change_password", access_token, False)
 
     def test_get_change_users_attributes_capabilities(self):
+        """
+        Test that per default server returns `m.change_password`
+        but not `org.matrix.msc3283.enable_set_displayname`.
+        In feature we can add further capabilites.
+        If MSC3283 is in spec, the test must be updated to test that server reponds
+        with `m.enable_set_displayname` per default.
+        """
         access_token = self.login(self.localpart, self.password)
 
         channel = self.make_request("GET", self.url, access_token=access_token)
