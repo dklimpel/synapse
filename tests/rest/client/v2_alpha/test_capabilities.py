@@ -97,6 +97,9 @@ class CapabilitiesTestCase(unittest.HomeserverTestCase):
 
     @override_config({"enable_set_displayname": False})
     def test_get_change_displayname_capabilities_displayname_disabled(self):
+        """
+        Test if change displayname is disabled that the server responds it.
+        """
         access_token = self.login(self.localpart, self.password)
 
         self._test_capability(
@@ -105,7 +108,7 @@ class CapabilitiesTestCase(unittest.HomeserverTestCase):
 
     def _test_capability(self, capability: str, access_token: str, expect_success=True):
         """
-        Requests the capabilities of the server and check if this is expected.
+        Requests the capabilities from server and check if the value is expected.
         """
         channel = self.make_request("GET", self.url, access_token=access_token)
         capabilities = channel.json_body["capabilities"]
