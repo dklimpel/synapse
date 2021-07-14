@@ -166,9 +166,9 @@ class ProxyParserTests(TestCase):
         url = b"https://[2001:0db8:85a3:0000:0000:8a2e:0370:1234]:9988"
         self.assertEqual((b"https", b"2001:0db8:85a3:0000:0000:8a2e:0370:1234", 9988, None), parse_proxy(url))
 
-        url = b"https://::1:9988"
+        url = b"https://[::1]:9988"
         self.assertEqual((b"https", b"::1", 9988, None), parse_proxy(url))
-        url = b"https://::ffff:0.0.0.0:9988"
+        url = b"https://[::ffff:0.0.0.0]:9988"
         self.assertEqual((b"https", b"::ffff:0.0.0.0", 9988, None), parse_proxy(url))
 
 
