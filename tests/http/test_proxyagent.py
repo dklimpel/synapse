@@ -28,12 +28,7 @@ from twisted.protocols.tls import TLSMemoryBIOFactory
 from twisted.web.http import HTTPChannel
 
 from synapse.http.client import BlacklistingReactorWrapper
-from synapse.http.proxyagent import (
-    ProxyAgent,
-    ProxyCredentials,
-    parse_proxy,
-    parse_username_password,
-)
+from synapse.http.proxyagent import ProxyAgent, ProxyCredentials, parse_proxy
 
 from tests.http import TestServerTLSConnectionFactory, get_test_https_policy
 from tests.server import FakeTransport, ThreadedMemoryReactorClock
