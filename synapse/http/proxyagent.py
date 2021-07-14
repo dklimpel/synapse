@@ -245,6 +245,7 @@ class ProxyAgent(_AgentBase):
             pool_key, endpoint, method, parsed_uri, headers, bodyProducer, request_path
         )
 
+
 def _http_proxy_endpoint(
     proxy: Optional[bytes],
     reactor: IReactorCore,
@@ -289,6 +290,7 @@ def _http_proxy_endpoint(
 
     return proxy_endpoint, credentials
 
+
 def parse_proxy(
     proxy: bytes, default_scheme: bytes = b"http", default_port: int = 1080
 ) -> Tuple[bytes, bytes, int, Optional[ProxyCredentials]]:
@@ -324,8 +326,6 @@ def parse_proxy(
 
     credentials = None
     if url.username and url.password:
-        credentials = ProxyCredentials(
-            b"".join([url.username, b":", url.password])
-        )
+        credentials = ProxyCredentials(b"".join([url.username, b":", url.password]))
 
     return url.scheme, url.hostname, url.port or default_port, credentials
