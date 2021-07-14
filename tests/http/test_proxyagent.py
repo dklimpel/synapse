@@ -77,14 +77,14 @@ class ProxyParserTests(TestCase):
                 b"http",
                 b"2001:0db8:85a3:0000:0000:8a2e:0370:effe",
                 9988,
-                None
+                None,
             ],
             [
                 b"[2001:0db8:85a3:0000:0000:8a2e:0370:1234]:9988",
                 b"http",
                 b"2001:0db8:85a3:0000:0000:8a2e:0370:1234",
                 9988,
-                None
+                None,
             ],
             [b"[::1]:9988", b"http", b"::1", 9988, None],
             [b"[::ffff:0.0.0.0]:9988", b"http", b"::ffff:0.0.0.0", 9988, None],
@@ -94,37 +94,31 @@ class ProxyParserTests(TestCase):
                 b"https",
                 b"2001:0db8:85a3:0000:0000:8a2e:0370:effe",
                 1080,
-                None
+                None,
             ],
             [
                 b"https://[2001:0db8:85a3:0000:0000:8a2e:0370:1234]",
                 b"https",
                 b"2001:0db8:85a3:0000:0000:8a2e:0370:1234",
                 1080,
-                None
+                None,
             ],
             [b"https://[::1]", b"https", b"::1", 1080, None],
-            [
-                b"https://[::ffff:0.0.0.0]",
-                b"https",
-                b"::ffff:0.0.0.0",
-                1080,
-                None
-            ],
+            [b"https://[::ffff:0.0.0.0]", b"https", b"::ffff:0.0.0.0", 1080, None],
             # ipv6+scheme+port
             [
                 b"https://[2001:0db8:85a3:0000:0000:8a2e:0370:effe]:9988",
                 b"https",
                 b"2001:0db8:85a3:0000:0000:8a2e:0370:effe",
                 9988,
-                None
+                None,
             ],
             [
                 b"https://[2001:0db8:85a3:0000:0000:8a2e:0370:1234]:9988",
                 b"https",
                 b"2001:0db8:85a3:0000:0000:8a2e:0370:1234",
                 9988,
-                None
+                None,
             ],
             [b"https://[::1]:9988", b"https", b"::1", 9988, None],
             # credentials
@@ -133,28 +127,22 @@ class ProxyParserTests(TestCase):
                 b"https",
                 b"1.2.3.4",
                 9988,
-                b"user:pass"
+                b"user:pass",
             ],
-            [
-                b"user:pass@1.2.3.4:9988",
-                b"http",
-                b"1.2.3.4",
-                9988,
-                b"user:pass"
-            ],
+            [b"user:pass@1.2.3.4:9988", b"http", b"1.2.3.4", 9988, b"user:pass"],
             [
                 b"https://user:pass@proxy.local:9988",
                 b"https",
                 b"proxy.local",
                 9988,
-                b"user:pass"
+                b"user:pass",
             ],
             [
                 b"user:pass@proxy.local:9988",
                 b"http",
                 b"proxy.local",
                 9988,
-                b"user:pass"
+                b"user:pass",
             ],
         ]
     )
