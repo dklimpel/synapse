@@ -337,10 +337,11 @@ def parse_proxy(
         TODO
     """
     # First check if we have a scheme present
+    # Note: urlsplit/urlparse cannot be used (for Python # 3.9+) on scheme-less proxies, e.g. host:port.
     if not b"://" in proxy:
         proxy = b"".join([default_scheme, b"://", proxy])
 
-    url = urlparse(proxy_url)
+    url = urlparse(proxy)
 
     if not url.hostname:
         raise RuntimeError("Proxy URL did not contain a hostname! Please specify one.")
