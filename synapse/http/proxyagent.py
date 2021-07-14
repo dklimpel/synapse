@@ -308,12 +308,13 @@ def parse_username_password(proxy: bytes) -> Tuple[Optional[ProxyCredentials], b
     if proxy and b"@" in proxy:
         scheme, host, port, ready_credentials = parse_proxy(proxy)
         # We use rsplit here as the password could contain an @ character
-        credentials, proxy_without_credentials = host.rsplit(b"@", 1)
+        #credentials, proxy_without_credentials = host.rsplit(b"@", 1)
         return (
             #ProxyCredentials(credentials),
             ready_credentials,
             b"".join(
-                [scheme, b"://", proxy_without_credentials, b":", str(port).encode()]
+                #[scheme, b"://", proxy_without_credentials, b":", str(port).encode()]
+                [scheme, b"://", host, b":", str(port).encode()]
             ),
         )
 
