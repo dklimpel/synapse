@@ -55,8 +55,11 @@ class ProxyParserTests(TestCase):
     def test_parse_username_password(
             self, proxy: bytes, proxy_without_credentials: bytes, credentials: Optional[bytes]
         ):
+        if credentials:
+            proxy_cred = ProxyCredentials(credentials)
+
         self.assertEqual(
-            (ProxyCredentials(credentials), proxy_without_credentials),
+            (proxy_cred, proxy_without_credentials),
             parse_username_password(proxy),
         )
 
