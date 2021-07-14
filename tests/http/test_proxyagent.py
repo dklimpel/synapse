@@ -17,10 +17,9 @@ import os
 from typing import Iterable, Optional
 from unittest.mock import patch
 
-from parameterized import parameterized
-
 import treq
 from netaddr import IPSet
+from parameterized import parameterized
 
 from twisted.internet import interfaces  # noqa: F401
 from twisted.internet.endpoints import HostnameEndpoint, _WrapperEndpoint
@@ -73,100 +72,91 @@ class ProxyParserTests(TestCase):
         )
     """
 
-    @parameterized.expand([
-        # host
-        [b"localhost", b"http", b"localhost", 1080, None],
-        [b"localhost:9988", b"http", b"localhost", 9988, None],
-        # host+scheme
-        [b"https://localhost", b"https", b"localhost", 1080, None],
-        [b"https://localhost:1234", b"https", b"localhost", 1234, None],
-        # ipv4
-        [b"1.2.3.4", b"http", b"1.2.3.4", 1080, None],
-        [b"1.2.3.4:9988", b"http", b"1.2.3.4", 9988, None],
-        # ipv4+scheme
-        [b"https://1.2.3.4", b"https", b"1.2.3.4", 1080, None],
-        [b"https://1.2.3.4:9988", b"https", b"1.2.3.4", 9988, None],
-        # ipv6 - broken
-        # [
-        #     b"2001:0db8:85a3:0000:0000:8a2e:0370:effe",
-        #     b"http",
-        #     b"2001:0db8:85a3:0000:0000:8a2e:0370:effe",
-        #     1080,
-        #     None
-        # ],
-        # [
-        #     b"2001:0db8:85a3:0000:0000:8a2e:0370:1234",
-        #     b"http",
-        #     b"2001:0db8:85a3:0000:0000:8a2e:0370:1234",
-        #     1080,
-        #     None
-        # ],
-        [b"::1", b"http", b"::1", 1080, None],
-        [b"::ffff:0.0.0.0", b"http", b"::ffff:0.0.0.0", 1080, None],
-    ])
+    @parameterized.expand(
+        [
+            # host
+            [b"localhost", b"http", b"localhost", 1080, None],
+            [b"localhost:9988", b"http", b"localhost", 9988, None],
+            # host+scheme
+            [b"https://localhost", b"https", b"localhost", 1080, None],
+            [b"https://localhost:1234", b"https", b"localhost", 1234, None],
+            # ipv4
+            [b"1.2.3.4", b"http", b"1.2.3.4", 1080, None],
+            [b"1.2.3.4:9988", b"http", b"1.2.3.4", 9988, None],
+            # ipv4+scheme
+            [b"https://1.2.3.4", b"https", b"1.2.3.4", 1080, None],
+            [b"https://1.2.3.4:9988", b"https", b"1.2.3.4", 9988, None],
+            # ipv6 - broken
+            # [
+            #     b"2001:0db8:85a3:0000:0000:8a2e:0370:effe",
+            #     b"http",
+            #     b"2001:0db8:85a3:0000:0000:8a2e:0370:effe",
+            #     1080,
+            #     None
+            # ],
+            # [
+            #     b"2001:0db8:85a3:0000:0000:8a2e:0370:1234",
+            #     b"http",
+            #     b"2001:0db8:85a3:0000:0000:8a2e:0370:1234",
+            #     1080,
+            #     None
+            # ],
+            # [b"::1", b"http", b"::1", 1080, None],
+            # [b"::ffff:0.0.0.0", b"http", b"::ffff:0.0.0.0", 1080, None],
+            # ipv6+port
+            [
+                b"[2001:0db8:85a3:0000:0000:8a2e:0370:effe]:9988",
+                b"http",
+                b"2001:0db8:85a3:0000:0000:8a2e:0370:effe",
+                9988,
+                None
+            ],
+            [
+                b"[2001:0db8:85a3:0000:0000:8a2e:0370:1234]:9988",
+                b"http",
+                b"2001:0db8:85a3:0000:0000:8a2e:0370:1234",
+                9988,
+                None
+            ],
+            [b"[::1]:9988", b"http", b"::1", 9988, None],
+            [b"[::ffff:0.0.0.0]:9988", b"http", b"::ffff:0.0.0.0", 9988, None],
+            # ipv6+scheme
+            [
+                b"https://[2001:0db8:85a3:0000:0000:8a2e:0370:effe]",
+                b"https",
+                b"2001:0db8:85a3:0000:0000:8a2e:0370:effe",
+                1080,
+                None
+            ],
+            [
+                b"https://[2001:0db8:85a3:0000:0000:8a2e:0370:1234]",
+                b"https",
+                b"2001:0db8:85a3:0000:0000:8a2e:0370:1234",
+                1080,
+                None
+            ],
+            [b"https://[::1]", b"https", b"::1", 1080, None],
+            [
+                b"https://[::ffff:0.0.0.0]",
+                b"https",
+                b"::ffff:0.0.0.0",
+                1080,
+                None
+            ],
+        ]
+    )
     def test_parse_proxy(
-            self,
-            proxy: bytes,
-            scheme: bytes,
-            hostname: bytes,
-            port: int,
-            credentials: Optional[bytes],
-        ):
+        self,
+        proxy: bytes,
+        scheme: bytes,
+        hostname: bytes,
+        port: int,
+        credentials: Optional[bytes],
+    ):
         cred = None
         if credentials:
             cred = ProxyCredentials(credentials)
         self.assertEqual((scheme, hostname, port, cred), parse_proxy(proxy))
-
-    def test_parse_proxy_host_ipv6(self):
-        # broken
-        url = b"2001:0db8:85a3:0000:0000:8a2e:0370:effe"
-        #self.assertEqual(
-        #    (b"http", b"2001:0db8:85a3:0000:0000:8a2e:0370:effe", 1080, None),
-        #    parse_proxy(url),
-        #)
-
-        # currently broken
-        url = b"2001:0db8:85a3:0000:0000:8a2e:0370:1234"
-        #self.assertEqual((b"http", b"2001:0db8:85a3:0000:0000:8a2e:0370:1234", 1080, None), parse_proxy(url))
-
-        # also broken
-        url = b"::1"
-        #self.assertEqual((b"http", b"::1", 1080, None), parse_proxy(url))
-        url = b"::ffff:0.0.0.0"
-        #self.assertEqual((b"http", b"::ffff:0.0.0.0", 1080, None), parse_proxy(url))
-
-    def test_parse_proxy_host_port_ipv6(self):
-        url = b"[2001:0db8:85a3:0000:0000:8a2e:0370:effe]:9988"
-        self.assertEqual(
-            (b"http", b"2001:0db8:85a3:0000:0000:8a2e:0370:effe", 9988, None),
-            parse_proxy(url),
-        )
-
-        # currently broken
-        url = b"[2001:0db8:85a3:0000:0000:8a2e:0370:1234]:9988"
-        self.assertEqual((b"http", b"2001:0db8:85a3:0000:0000:8a2e:0370:1234", 9988, None), parse_proxy(url))
-
-        url = b"[::1]:9988"
-        self.assertEqual((b"http", b"::1", 9988, None), parse_proxy(url))
-        url = b"[::ffff:0.0.0.0]:9988"
-        self.assertEqual((b"http", b"::ffff:0.0.0.0", 9988, None), parse_proxy(url))
-
-    def test_parse_proxy_scheme_host_ipv6(self):
-        url = b"https://[2001:0db8:85a3:0000:0000:8a2e:0370:effe]"
-        self.assertEqual(
-            (b"https", b"2001:0db8:85a3:0000:0000:8a2e:0370:effe", 1080, None),
-            parse_proxy(url),
-        )
-
-        # currently broken
-        url = b"https://[2001:0db8:85a3:0000:0000:8a2e:0370:1234]"
-        self.assertEqual((b"https", b"2001:0db8:85a3:0000:0000:8a2e:0370:1234", 1080, None), parse_proxy(url))
-
-        # also broken
-        url = b"https://[::1]"
-        self.assertEqual((b"https", b"::1", 1080, None), parse_proxy(url))
-        url = b"https://[::ffff:0.0.0.0]:1080"
-        self.assertEqual((b"https", b"::ffff:0.0.0.0", 1080, None), parse_proxy(url))
 
     def test_parse_proxy_scheme_host_port_ipv6(self):
         url = b"https://[2001:0db8:85a3:0000:0000:8a2e:0370:effe]:9988"
