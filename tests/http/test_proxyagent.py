@@ -74,14 +74,15 @@ class ProxyParserTests(TestCase):
     """
 
     @parameterized.expand([
-        [b"localhost", b"http", b"localhost", None, None],
+        [b"localhost", b"http", b"localhost", 1080, None],
+        [b"localhost:9988", b"http", b"localhost", 9988, None],
     ])
     def test_parse_proxy(
             self,
             proxy: bytes,
             scheme: bytes,
             hostname: bytes,
-            port: int = 1080,
+            port: int,
             credentials: Optional[bytes],
         ):
         cred = None
