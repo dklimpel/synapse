@@ -84,6 +84,7 @@ class CapabilitiesTestCase(unittest.HomeserverTestCase):
         )
 
         self._test_capability("m.change_password", access_token, False)
+
     def test_get_change_users_attributes_capabilities(self):
         access_token = self.login(self.localpart, self.password)
 
