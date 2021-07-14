@@ -45,33 +45,6 @@ HTTPFactory = Factory.forProtocol(HTTPChannel)
 
 
 class ProxyParserTests(TestCase):
-    """
-    @parameterized.expand([
-        # IPv4 + Port
-        [b"https://1.2.3.4:9988", b"https://1.2.3.4:9988", None],
-        [b"https://user:pass@1.2.3.4:9988", b"https://1.2.3.4:9988", b"user:pass"],
-        [b"1.2.3.4:9988", b"1.2.3.4:9988", None],
-        [b"user:pass@1.2.3.4:9988", b"http://1.2.3.4:9988", b"user:pass"],
-        # Domain + Port
-        [b"https://proxy.local:9988", b"https://proxy.local:9988", None],
-        [b"https://user:pass@proxy.local:9988", b"https://proxy.local:9988", b"user:pass"],
-        [b"proxy.local:9988", b"proxy.local:9988", None],
-        [b"user:pass@proxy.local:9988", b"http://proxy.local:9988", b"user:pass"],
-    ])
-    def test_parse_username_password(
-            self, proxy: bytes, proxy_without_credentials: bytes, credentials: Optional[bytes]
-        ):
-        if credentials:
-            proxy_cred = ProxyCredentials(credentials)
-        else:
-            proxy_cred = None
-
-        self.assertEqual(
-            (proxy_cred, proxy_without_credentials),
-            parse_username_password(proxy),
-        )
-    """
-
     @parameterized.expand(
         [
             # host
@@ -143,6 +116,51 @@ class ProxyParserTests(TestCase):
                 1080,
                 None
             ],
+            # ipv6+scheme+port
+            [
+                b"https://[2001:0db8:85a3:0000:0000:8a2e:0370:effe]:9988",
+                b"https",
+                b"2001:0db8:85a3:0000:0000:8a2e:0370:effe",
+                9988,
+                None
+            ],
+            [
+                b"https://[2001:0db8:85a3:0000:0000:8a2e:0370:1234]:9988",
+                b"https",
+                b"2001:0db8:85a3:0000:0000:8a2e:0370:1234",
+                9988,
+                None
+            ],
+            [b"https://[::1]:9988", b"https", b"::1", 9988, None],
+            # credentials
+            [
+                b"https://user:pass@1.2.3.4:9988",
+                b"https",
+                b"1.2.3.4",
+                9988,
+                b"user:pass"
+            ],
+            [
+                b"user:pass@1.2.3.4:9988",
+                b"http",
+                b"1.2.3.4",
+                9988,
+                b"user:pass"
+            ],
+            [
+                b"https://user:pass@proxy.local:9988",
+                b"https",
+                b"proxy.local",
+                9988,
+                b"user:pass"
+            ],
+            [
+                b"user:pass@proxy.local:9988",
+                b"http",
+                b"proxy.local",
+                9988,
+                b"user:pass"
+            ],
         ]
     )
     def test_parse_proxy(
@@ -157,22 +175,6 @@ class ProxyParserTests(TestCase):
         if credentials:
             cred = ProxyCredentials(credentials)
         self.assertEqual((scheme, hostname, port, cred), parse_proxy(proxy))
-
-    def test_parse_proxy_scheme_host_port_ipv6(self):
-        url = b"https://[2001:0db8:85a3:0000:0000:8a2e:0370:effe]:9988"
-        self.assertEqual(
-            (b"https", b"2001:0db8:85a3:0000:0000:8a2e:0370:effe", 9988, None),
-            parse_proxy(url),
-        )
-
-        # currently broken
-        url = b"https://[2001:0db8:85a3:0000:0000:8a2e:0370:1234]:9988"
-        self.assertEqual((b"https", b"2001:0db8:85a3:0000:0000:8a2e:0370:1234", 9988, None), parse_proxy(url))
-
-        url = b"https://[::1]:9988"
-        # broken self.assertEqual((b"https", b"::1", 9988, None), parse_proxy(url))
-        url = b"https://[::ffff:0.0.0.0]:9988"
-        self.assertEqual((b"https", b"::ffff:0.0.0.0", 9988, None), parse_proxy(url))
 
 
 class MatrixFederationAgentTests(TestCase):
