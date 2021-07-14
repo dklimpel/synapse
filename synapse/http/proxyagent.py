@@ -278,7 +278,7 @@ def _http_proxy_endpoint(
 
     # Note: urlsplit/urlparse cannot be used here as that does not work (for Python
     # 3.9+) on scheme-less proxies, e.g. host:port.
-    scheme, host, port = parse_proxy(proxy)
+    scheme, host, port, credentials = parse_proxy(proxy)
 
     if scheme not in (b"http", b"https"):
         raise ValueError(f"Proxy scheme '{scheme.decode()}' not supported")
