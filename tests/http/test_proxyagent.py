@@ -139,18 +139,18 @@ class ProxyParserTests(TestCase):
         self.assertEqual((b"http", b"::ffff:0.0.0.0", 9988, None), parse_proxy(url))
 
     def test_parse_proxy_scheme_host_ipv6(self):
-        url = b"https://2001:0db8:85a3:0000:0000:8a2e:0370:effe"
+        url = b"https://[2001:0db8:85a3:0000:0000:8a2e:0370:effe]"
         self.assertEqual(
             (b"https", b"2001:0db8:85a3:0000:0000:8a2e:0370:effe", 1080, None),
             parse_proxy(url),
         )
 
         # currently broken
-        url = b"https://2001:0db8:85a3:0000:0000:8a2e:0370:1234"
+        url = b"https://[2001:0db8:85a3:0000:0000:8a2e:0370:1234]"
         self.assertEqual((b"https", b"2001:0db8:85a3:0000:0000:8a2e:0370:1234", 1080, None), parse_proxy(url))
 
         # also broken
-        url = b"https://::1"
+        url = b"https://[::1]"
         self.assertEqual((b"https", b"::1", 1080, None), parse_proxy(url))
         url = b"https://[::ffff:0.0.0.0]:1080"
         self.assertEqual((b"https", b"::ffff:0.0.0.0", 1080, None), parse_proxy(url))
