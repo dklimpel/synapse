@@ -17,6 +17,8 @@ import os
 from typing import Iterable, Optional
 from unittest.mock import patch
 
+from parameterized import parameterized
+
 import treq
 from netaddr import IPSet
 
@@ -27,7 +29,7 @@ from twisted.protocols.tls import TLSMemoryBIOFactory
 from twisted.web.http import HTTPChannel
 
 from synapse.http.client import BlacklistingReactorWrapper
-from synapse.http.proxyagent import ProxyAgent, parse_proxy
+from synapse.http.proxyagent import ProxyAgent, parse_proxy, parse_username_password
 
 from tests.http import TestServerTLSConnectionFactory, get_test_https_policy
 from tests.server import FakeTransport, ThreadedMemoryReactorClock
@@ -39,6 +41,19 @@ HTTPFactory = Factory.forProtocol(HTTPChannel)
 
 
 class ProxyParserTests(TestCase):
+    @parameterized.expand([
+        [b"https://1.2.3.4:9988", b"https://1.2.3.4:9988", None],
+        ["bar", "a", "b"],
+        ["lee", "b", "b"],
+    ])
+    def test_parse_username_password(
+            self, proxy: bytes, proxy_without_credentials: bytes, credentials: Optional[bytes]
+        ):
+        self.assertEqual(
+            (ProxyCredentials(credentials), proxy_without_credentials),
+            parse_username_password(proxy),
+        )
+
     def test_parse_proxy_host_only(self):
         url = b"localhost"
         self.assertEqual((b"http", b"localhost", 1080), parse_proxy(url))
