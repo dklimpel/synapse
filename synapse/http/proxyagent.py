@@ -15,6 +15,7 @@ import base64
 import logging
 import re
 from typing import Optional, Tuple
+from urllib.parse import urlparse
 from urllib.request import getproxies_environment, proxy_bypass_environment
 
 import attr
@@ -331,8 +332,8 @@ def parse_proxy(
         A tuple containing the scheme, hostname and port.
     """
     # First check if we have a scheme present
-    if b"://" in proxy:
-        scheme, host = proxy.split(b"://", 1)
+    if not b"://" in proxy:
+        proxy = b"".join([default_scheme, b"://", proxy])
     else:
         scheme, host = default_scheme, proxy
     # Now check the leftover part for a port
