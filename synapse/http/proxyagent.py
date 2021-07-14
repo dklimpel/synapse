@@ -353,7 +353,7 @@ def parse_proxy(
     credentials = None
     if url.username and url.password:
         credentials = ProxyCredentials(
-            b"".join([url.username], b":", [url.password])
+            b"".join([url.username, b":", url.password])
         )
 
     return url.scheme, url.hostname, url.port or default_port, credentials
