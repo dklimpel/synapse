@@ -29,7 +29,12 @@ from twisted.protocols.tls import TLSMemoryBIOFactory
 from twisted.web.http import HTTPChannel
 
 from synapse.http.client import BlacklistingReactorWrapper
-from synapse.http.proxyagent import ProxyAgent, parse_proxy, parse_username_password
+from synapse.http.proxyagent import (
+    ProxyAgent,
+    ProxyCredentials,
+    parse_proxy,
+    parse_username_password,
+)
 
 from tests.http import TestServerTLSConnectionFactory, get_test_https_policy
 from tests.server import FakeTransport, ThreadedMemoryReactorClock
@@ -43,8 +48,9 @@ HTTPFactory = Factory.forProtocol(HTTPChannel)
 class ProxyParserTests(TestCase):
     @parameterized.expand([
         [b"https://1.2.3.4:9988", b"https://1.2.3.4:9988", None],
-        ["bar", "a", "b"],
-        ["lee", "b", "b"],
+        [b"https://user:pass@1.2.3.4:9988", b"https://1.2.3.4:9988", b"user:pass"],
+        [b"1.2.3.4:9988", b"1.2.3.4:9988", None],
+        [b"user:pass@1.2.3.4:9988", b"1.2.3.4:9988", b"user:pass"],
     ])
     def test_parse_username_password(
             self, proxy: bytes, proxy_without_credentials: bytes, credentials: Optional[bytes]
