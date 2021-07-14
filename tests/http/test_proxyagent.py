@@ -57,6 +57,8 @@ class ProxyParserTests(TestCase):
         ):
         if credentials:
             proxy_cred = ProxyCredentials(credentials)
+        else:
+            proxy_cred = None
 
         self.assertEqual(
             (proxy_cred, proxy_without_credentials),
