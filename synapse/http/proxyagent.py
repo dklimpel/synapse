@@ -245,7 +245,6 @@ class ProxyAgent(_AgentBase):
             pool_key, endpoint, method, parsed_uri, headers, bodyProducer, request_path
         )
 
-
 def _http_proxy_endpoint(
     proxy: Optional[bytes],
     reactor: IReactorCore,
@@ -267,6 +266,8 @@ def _http_proxy_endpoint(
     Returns:
         interfaces.IStreamClientEndpoint|None: endpoint to use to connect to the proxy,
             or None
+        ProxyCredentials|None: If no credentials were found, the
+            ProxyCredentials instance is replaced with None.
 
     Raises: ValueError if given a proxy with a scheme we don't support.
     """
@@ -288,52 +289,23 @@ def _http_proxy_endpoint(
 
     return proxy_endpoint, credentials
 
-
-def parse_username_password(proxy: bytes) -> Tuple[Optional[ProxyCredentials], bytes]:
-    """
-    Parses the username and password from a proxy declaration e.g
-    username:password@hostname:port or https://username:password@hostname:port
-
-    Args:
-        proxy: The proxy connection string.
-
-    Returns
-        An instance of ProxyCredentials and the proxy connection string with any credentials
-        stripped, i.e u:p@host:port -> host:port. If no credentials were found, the
-        ProxyCredentials instance is replaced with None.
-    """
-    if proxy and b"@" in proxy:
-        scheme, host, port, ready_credentials = parse_proxy(proxy)
-        # We use rsplit here as the password could contain an @ character
-        #credentials, proxy_without_credentials = host.rsplit(b"@", 1)
-        return (
-            #ProxyCredentials(credentials),
-            ready_credentials,
-            b"".join(
-                #[scheme, b"://", proxy_without_credentials, b":", str(port).encode()]
-                [scheme, b"://", host, b":", str(port).encode()]
-            ),
-        )
-
-    return None, proxy
-
-
 def parse_proxy(
     proxy: bytes, default_scheme: bytes = b"http", default_port: int = 1080
 ) -> Tuple[bytes, bytes, int, Optional[ProxyCredentials]]:
     """
-    Parse the scheme, hostname and port from a proxy connection byte string.
+    Parse the scheme, username, password, hostname and port from a proxy connection byte string.
 
     Args:
-        proxy: The proxy connection string. Must be in the form '[scheme://]host[:port]'.
+        proxy: The proxy connection string. Must be in the form '[scheme://][username:password@]host[:port]'.
         default_scheme: The default scheme to return if one is not found in `proxy`. Defaults to http
         default_port: The default port to return if one is not found in `proxy`. Defaults to 1080
 
     Returns:
-        A tuple containing the scheme, hostname and port.
+        A tuple containing the scheme, hostname, port and ProxyCredentials.
+            If no credentials were found, the ProxyCredentials instance is replaced with None.
 
     Raise:
-        TODO
+        RuntimeError
     """
     # First check if we have a scheme present
     # Note: urlsplit/urlparse cannot be used (for Python # 3.9+) on scheme-less proxies, e.g. host:port.
