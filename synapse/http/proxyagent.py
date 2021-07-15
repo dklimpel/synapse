@@ -33,7 +33,7 @@ from twisted.web.client import (
 )
 from twisted.web.error import SchemeNotSupported
 from twisted.web.http_headers import Headers
-from twisted.web.iweb import IAgent, IBodyProducer, IPolicyForHTTPS, IResponse
+from twisted.web.iweb import IAgent, IBodyProducer, IPolicyForHTTPS
 
 from synapse.http.connectproxyclient import HTTPConnectProxyEndpoint
 from synapse.types import ISynapseReactor
