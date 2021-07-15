@@ -148,7 +148,7 @@ class ProxyAgent(_AgentBase):
         uri: bytes,
         headers: Optional[Headers] = None,
         bodyProducer: Optional[IBodyProducer] = None,
-    ) -> IResponse:
+    ) -> defer.Deferred:
         """
         Issue a request to the server indicated by the given uri.
 
