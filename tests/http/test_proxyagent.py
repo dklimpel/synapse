@@ -346,7 +346,7 @@ class MatrixFederationAgentTests(TestCase):
     @patch.dict(os.environ, {"https_proxy": "proxy.com", "no_proxy": "unused.com"})
     def test_https_request_via_proxy(self):
         """Tests that TLS-encrypted requests can be made through a proxy"""
-        self._do_https_request_via_proxy(auth_credentials=None)
+        self._do_https_request_via_proxy(ssl=False, auth_credentials=None)
 
     @patch.dict(
         os.environ,
@@ -354,7 +354,20 @@ class MatrixFederationAgentTests(TestCase):
     )
     def test_https_request_via_proxy_with_auth(self):
         """Tests that authenticated, TLS-encrypted requests can be made through a proxy"""
-        self._do_https_request_via_proxy(auth_credentials="bob:pinkponies")
+        self._do_https_request_via_proxy(ssl=False, auth_credentials="bob:pinkponies")
+
+    @patch.dict(os.environ, {"https_proxy": "https://proxy.com", "no_proxy": "unused.com"})
+    def test_https_request_via_https_proxy(self):
+        """Tests that TLS-encrypted requests can be made through a proxy"""
+        self._do_https_request_via_proxy(ssl=True, auth_credentials=None)
+
+    @patch.dict(
+        os.environ,
+        {"https_proxy": "https://bob:pinkponies@proxy.com", "no_proxy": "unused.com"},
+    )
+    def test_https_request_via_https_proxy_with_auth(self):
+        """Tests that authenticated, TLS-encrypted requests can be made through a proxy"""
+        self._do_https_request_via_proxy(ssl=True, auth_credentials="bob:pinkponies")
 
     def _do_http_request_via_proxy(
         self, ssl: bool = False, auth_credentials: Optional[str] = None,
@@ -429,8 +442,15 @@ class MatrixFederationAgentTests(TestCase):
 
     def _do_https_request_via_proxy(
         self,
+        ssl: bool = False,
         auth_credentials: Optional[str] = None,
-    ):
+    ) -> None:
+        """Send a https request via an agent and check that it is correctly received at
+            the proxy and client. The proxy can use either http or https.
+        Args:
+            ssl: True if we expect the request to connect via https to proxy
+            auth_credentials: credentials to authenticate at proxy
+        """
         agent = ProxyAgent(
             self.reactor,
             contextFactory=get_test_https_policy(),
@@ -449,7 +469,11 @@ class MatrixFederationAgentTests(TestCase):
 
         # make a test HTTP server, and wire up the client
         proxy_server = self._make_connection(
-            client_factory, _get_test_protocol_factory()
+            client_factory,
+            _get_test_protocol_factory(),
+            ssl=ssl,
+            tls_sanlist=[b"DNS:proxy.com"] if ssl else None,
+            expected_sni=b"proxy.com" if ssl else None,
         )
 
         # fish the transports back out so that we can do the old switcheroo
