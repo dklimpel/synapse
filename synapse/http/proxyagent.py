@@ -23,7 +23,7 @@ from zope.interface import implementer
 
 from twisted.internet import defer
 from twisted.internet.endpoints import HostnameEndpoint, wrapClientTLS
-from twisted.internet.interfaces import IReactorCore
+from twisted.internet.interfaces import IReactorCore, IStreamClientEndpoint
 from twisted.python.failure import Failure
 from twisted.web.client import URI, BrowserLikePolicyForHTTPS, _AgentBase
 from twisted.web.error import SchemeNotSupported
@@ -81,7 +81,7 @@ class ProxyAgent(_AgentBase):
         pool (HTTPConnectionPool|None): connection pool to be used. If None, a
             non-persistent pool instance will be created.
 
-        use_proxy (bool): Whether proxy settings should be discovered and used
+        use_proxy: Whether proxy settings should be discovered and used
             from conventional environment variables.
             A proxy without scheme is assumed to be http.
 
@@ -91,12 +91,12 @@ class ProxyAgent(_AgentBase):
 
     def __init__(
         self,
-        reactor,
-        proxy_reactor=None,
+        reactor: IReactorCore,
+        proxy_reactor: IStreamClientEndpoint = None,
         contextFactory: Optional[IPolicyForHTTPS] = None,
-        connectTimeout=None,
-        bindAddress=None,
-        pool=None,
+        connectTimeout: float = None,
+        bindAddress: bytes = None,
+        pool: HTTPConnectionPool = None,
         use_proxy: bool = False,
     ):
         contextFactory = contextFactory or BrowserLikePolicyForHTTPS()
