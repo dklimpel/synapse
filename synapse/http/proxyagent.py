@@ -92,7 +92,7 @@ class ProxyAgent(_AgentBase):
     def __init__(
         self,
         reactor: IReactorCore,
-        proxy_reactor: IStreamClientEndpoint = None,
+        proxy_reactor: ISynapseReactor = None,
         contextFactory: Optional[IPolicyForHTTPS] = None,
         connectTimeout: float = None,
         bindAddress: bytes = None,
