@@ -65,7 +65,7 @@ class ProxyAgent(_AgentBase):
                        reactor might have some blacklisting applied (i.e. for DNS queries),
                        but we need unblocked access to the proxy.
 
-        contextFactory (IPolicyForHTTPS): A factory for TLS contexts, to control the
+        contextFactory: A factory for TLS contexts, to control the
             verification parameters of OpenSSL.  The default is to use a
             `BrowserLikePolicyForHTTPS`, so unless you have special
             requirements you can leave this as-is.
@@ -92,11 +92,11 @@ class ProxyAgent(_AgentBase):
     def __init__(
         self,
         reactor: IReactorCore,
-        proxy_reactor: ISynapseReactor = None,
+        proxy_reactor: Optional[ISynapseReactor] = None,
         contextFactory: Optional[IPolicyForHTTPS] = None,
-        connectTimeout: float = None,
-        bindAddress: bytes = None,
-        pool: HTTPConnectionPool = None,
+        connectTimeout: Optional[float] = None,
+        bindAddress: Optional[bytes] = None,
+        pool: Optional[HTTPConnectionPool] = None,
         use_proxy: bool = False,
     ):
         contextFactory = contextFactory or BrowserLikePolicyForHTTPS()
@@ -256,7 +256,7 @@ def _http_proxy_endpoint(
     reactor: IReactorCore,
     tls_options_factory: IPolicyForHTTPS,
     **kwargs,
-):
+) -> Optional[IStreamClientEndpoint], Optional[ProxyCredentials]:
     """Parses an http proxy setting and returns an endpoint for the proxy
 
     Args:
