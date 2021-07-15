@@ -70,15 +70,15 @@ class ProxyAgent(_AgentBase):
             `BrowserLikePolicyForHTTPS`, so unless you have special
             requirements you can leave this as-is.
 
-        connectTimeout (Optional[float]): The amount of time that this Agent will wait
+        connectTimeout: The amount of time that this Agent will wait
             for the peer to accept a connection, in seconds. If 'None',
             HostnameEndpoint's default (30s) will be used.
 
             This is used for connections to both proxies and destination servers.
 
-        bindAddress (bytes): The local address for client sockets to bind to.
+        bindAddress: The local address for client sockets to bind to.
 
-        pool (HTTPConnectionPool|None): connection pool to be used. If None, a
+        pool: connection pool to be used. If None, a
             non-persistent pool instance will be created.
 
         use_proxy: Whether proxy settings should be discovered and used
@@ -270,10 +270,9 @@ def _http_proxy_endpoint(
         kwargs: other args to be passed to HostnameEndpoint
 
     Returns:
-        interfaces.IStreamClientEndpoint|None: endpoint to use to connect to the proxy,
-            or None
-        ProxyCredentials|None: If no credentials were found, the
-            ProxyCredentials instance is replaced with None.
+        a tuple of
+            endpoint to use to connect to the proxy, or None
+            ProxyCredentials or if no credentials were found, or None
     """
     if proxy is None:
         return None, None
