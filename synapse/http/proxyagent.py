@@ -28,7 +28,7 @@ from twisted.python.failure import Failure
 from twisted.web.client import URI, BrowserLikePolicyForHTTPS, _AgentBase
 from twisted.web.error import SchemeNotSupported
 from twisted.web.http_headers import Headers
-from twisted.web.iweb import IAgent, IPolicyForHTTPS
+from twisted.web.iweb import IAgent, IBodyProducer, IPolicyForHTTPS, IResponse
 
 from synapse.http.connectproxyclient import HTTPConnectProxyEndpoint
 
@@ -97,7 +97,7 @@ class ProxyAgent(_AgentBase):
         connectTimeout=None,
         bindAddress=None,
         pool=None,
-        use_proxy=False,
+        use_proxy: bool = False,
     ):
         contextFactory = contextFactory or BrowserLikePolicyForHTTPS()
 
@@ -136,7 +136,13 @@ class ProxyAgent(_AgentBase):
         self._policy_for_https = contextFactory
         self._reactor = reactor
 
-    def request(self, method, uri, headers=None, bodyProducer=None):
+    def request(
+        self,
+        method: bytes,
+        uri: bytes,
+        headers: Optional[Headers] = None,
+        bodyProducer: Optional[IBodyProducer] = None,
+    ) -> Deferred[IResponse]:
         """
         Issue a request to the server indicated by the given uri.
 
@@ -148,19 +154,18 @@ class ProxyAgent(_AgentBase):
         See also: twisted.web.iweb.IAgent.request
 
         Args:
-            method (bytes): The request method to use, such as `GET`, `POST`, etc
+            method: The request method to use, such as `GET`, `POST`, etc
 
-            uri (bytes): The location of the resource to request.
+            uri: The location of the resource to request.
 
-            headers (Headers|None): Extra headers to send with the request
+            headers: Extra headers to send with the request
 
-            bodyProducer (IBodyProducer|None): An object which can generate bytes to
-                make up the body of this request (for example, the properly encoded
-                contents of a file for a file upload). Or, None if the request is to
-                have no body.
+            bodyProducer: An object which can generate bytes to make up the body of
+                this request (for example, the properly encoded contents of a file for
+                a file upload). Or, None if the request is to have no body.
 
         Returns:
-            Deferred[IResponse]: completes when the header of the response has
+            completes when the header of the response has
                  been received (regardless of the response status code).
 
                  Can fail with:
@@ -269,8 +274,6 @@ def _http_proxy_endpoint(
             or None
         ProxyCredentials|None: If no credentials were found, the
             ProxyCredentials instance is replaced with None.
-
-    Raises: ValueError if given a proxy with a scheme we don't support.
     """
     if proxy is None:
         return None, None
@@ -278,9 +281,6 @@ def _http_proxy_endpoint(
     # Note: urlsplit/urlparse cannot be used here as that does not work (for Python
     # 3.9+) on scheme-less proxies, e.g. host:port.
     scheme, host, port, credentials = parse_proxy(proxy)
-
-    if scheme not in (b"http", b"https"):
-        raise ValueError(f"Proxy scheme '{scheme.decode()}' not supported")
 
     proxy_endpoint = HostnameEndpoint(reactor, host, port, **kwargs)
 
@@ -310,7 +310,7 @@ def parse_proxy(
             If no credentials were found, the ProxyCredentials instance is replaced with None.
 
     Raise:
-        RuntimeError
+        RuntimeError if proxy has no hostname or unsupported scheme.
     """
     # First check if we have a scheme present
     # Note: urlsplit/urlparse cannot be used (for Python # 3.9+) on scheme-less proxies, e.g. host:port.
@@ -322,7 +322,7 @@ def parse_proxy(
     if not url.hostname:
         raise RuntimeError("Proxy URL did not contain a hostname! Please specify one.")
 
-    if url.scheme not in [b"http", b"https"]:
+    if url.scheme not in (b"http", b"https"):
         raise RuntimeError(
             f"Unknown proxy scheme {url.scheme}; only 'http' and 'https' is supported."
         )
