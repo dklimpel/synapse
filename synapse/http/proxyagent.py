@@ -256,7 +256,7 @@ def _http_proxy_endpoint(
     reactor: IReactorCore,
     tls_options_factory: IPolicyForHTTPS,
     **kwargs,
-) -> Optional[IStreamClientEndpoint], Optional[ProxyCredentials]:
+) -> Tuple[Optional[IStreamClientEndpoint], Optional[ProxyCredentials]]:
     """Parses an http proxy setting and returns an endpoint for the proxy
 
     Args:
