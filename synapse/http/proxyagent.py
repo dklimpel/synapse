@@ -171,7 +171,7 @@ class ProxyAgent(_AgentBase):
                 a file upload). Or, None if the request is to have no body.
 
         Returns:
-            completes when the header of the response has
+            Deferred[IResponse]: completes when the header of the response has
                  been received (regardless of the response status code).
 
                  Can fail with:
