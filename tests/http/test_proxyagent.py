@@ -343,6 +343,26 @@ class MatrixFederationAgentTests(TestCase):
     def test_http_request_via_https_proxy_with_auth(self):
         self._do_http_request_via_proxy(ssl=True, auth_credentials="bob:pinkponies")
 
+    @patch.dict(
+        os.environ,
+        {"http_proxy": "https://proxy.com:8888", "no_proxy": "unused.com"}
+    )
+    def test_http_request_via_https_proxy2(self):
+        agent = ProxyAgent(
+            self.reactor, use_proxy=True, contextFactory=get_test_https_policy()
+        )
+        self._do_http_request_via_proxy2(agent, ssl=True, auth_credentials=None)
+
+    @patch.dict(
+        os.environ,
+        {"http_proxy": "https://bob:pinkponies@proxy.com:8888", "no_proxy": "unused.com"}
+    )
+    def test_http_request_via_https_proxy_with_auth2(self):
+        agent = ProxyAgent(
+            self.reactor, use_proxy=True, contextFactory=get_test_https_policy()
+        )
+        self._do_http_request_via_proxy2(agent, ssl=True, auth_credentials="bob:pinkponies")
+
     @patch.dict(os.environ, {"https_proxy": "proxy.com", "no_proxy": "unused.com"})
     def test_https_request_via_proxy(self):
         """Tests that TLS-encrypted requests can be made through a proxy"""
@@ -384,6 +404,71 @@ class MatrixFederationAgentTests(TestCase):
             )
         else:
             agent = ProxyAgent(self.reactor, use_proxy=True)
+
+        self.reactor.lookups["proxy.com"] = "1.2.3.5"
+        d = agent.request(b"GET", b"http://test.com")
+
+        # there should be a pending TCP connection
+        clients = self.reactor.tcpClients
+        self.assertEqual(len(clients), 1)
+        (host, port, client_factory, _timeout, _bindAddress) = clients[0]
+        self.assertEqual(host, "1.2.3.5")
+        self.assertEqual(port, 8888)
+
+        # make a test server, and wire up the client
+        http_server = self._make_connection(
+            client_factory,
+            _get_test_protocol_factory(),
+            ssl=ssl,
+            tls_sanlist=[b"DNS:proxy.com"] if ssl else None,
+            expected_sni=b"proxy.com" if ssl else None,
+        )
+
+        # the FakeTransport is async, so we need to pump the reactor
+        self.reactor.advance(0)
+
+        # now there should be a pending request
+        self.assertEqual(len(http_server.requests), 1)
+
+        request = http_server.requests[0]
+
+        # Check whether auth credentials have been supplied to the proxy
+        proxy_auth_header_values = request.requestHeaders.getRawHeaders(
+            b"Proxy-Authorization"
+        )
+
+        if auth_credentials is not None:
+            # Compute the correct header value for Proxy-Authorization
+            encoded_credentials = base64.b64encode(b"bob:pinkponies")
+            expected_header_value = b"Basic " + encoded_credentials
+
+            # Validate the header's value
+            self.assertIn(expected_header_value, proxy_auth_header_values)
+        else:
+            # Check that the Proxy-Authorization header has not been supplied to the proxy
+            self.assertIsNone(proxy_auth_header_values)
+
+        self.assertEqual(request.method, b"GET")
+        self.assertEqual(request.path, b"http://test.com")
+        self.assertEqual(request.requestHeaders.getRawHeaders(b"host"), [b"test.com"])
+        request.write(b"result")
+        request.finish()
+
+        self.reactor.advance(0)
+
+        resp = self.successResultOf(d)
+        body = self.successResultOf(treq.content(resp))
+        self.assertEqual(body, b"result")
+
+    def _do_http_request_via_proxy2(
+        self, agent: ProxyAgent, ssl: bool = False, auth_credentials: Optional[str] = None,
+    ) -> None:
+        """Send a http request via an agent and check that it is correctly received at
+            the proxy. The proxy can use either http or https.
+        Args:
+            ssl: True if we expect the request to connect via https to proxy
+            auth_credentials: credentials to authenticate at proxy
+        """
 
         self.reactor.lookups["proxy.com"] = "1.2.3.5"
         d = agent.request(b"GET", b"http://test.com")
