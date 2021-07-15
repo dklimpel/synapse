@@ -25,12 +25,13 @@ from twisted.internet import defer
 from twisted.internet.endpoints import HostnameEndpoint, wrapClientTLS
 from twisted.internet.interfaces import IReactorCore, IStreamClientEndpoint
 from twisted.python.failure import Failure
-from twisted.web.client import URI, BrowserLikePolicyForHTTPS, _AgentBase
+from twisted.web.client import URI, BrowserLikePolicyForHTTPS, HTTPConnectionPool, _AgentBase
 from twisted.web.error import SchemeNotSupported
 from twisted.web.http_headers import Headers
 from twisted.web.iweb import IAgent, IBodyProducer, IPolicyForHTTPS, IResponse
 
 from synapse.http.connectproxyclient import HTTPConnectProxyEndpoint
+from synapse.types import ISynapseReactor
 
 logger = logging.getLogger(__name__)
 
@@ -313,7 +314,7 @@ def parse_proxy(
     """
     # First check if we have a scheme present
     # Note: urlsplit/urlparse cannot be used (for Python # 3.9+) on scheme-less proxies, e.g. host:port.
-    if not b"://" in proxy:
+    if b"://" not in proxy:
         proxy = b"".join([default_scheme, b"://", proxy])
 
     url = urlparse(proxy)
