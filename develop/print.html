@@ -38,7 +38,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-21fcaaba.js";
+            window.path_to_searchindex_js = "searchindex-dcd6ca81.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-4dc10a98.js"></script>
@@ -425,6 +425,10 @@ pip install --upgrade pip
 pip install --upgrade setuptools
 pip install matrix-synapse
 </code></pre>
+<p>If you want to use a logging configuration that references
+<code>systemd.journal.JournalHandler</code> (for example <code>contrib/systemd/log_config.yaml</code>),
+you must install <code>systemd-python</code> separately in the same environment.
+Synapse no longer provides a <code>matrix-synapse[systemd]</code> extra.</p>
 <p>This will download Synapse from <a href="https://pypi.org/project/matrix-synapse">PyPI</a>
 and install it, along with the python libraries it uses, into a virtual environment
 under <code>~/synapse/env</code>.  Feel free to pick a different directory if you
@@ -2010,6 +2014,39 @@ database migrations are complete. You should wait until background updates from
 each upgrade are complete before moving on to the next upgrade, to avoid
 stacking them up. You can monitor the currently running background updates with
 <a href="#status">the Admin API</a>.</p>
+<h1 id="upgrading-to-v11520"><a class="header" href="#upgrading-to-v11520">Upgrading to v1.152.0</a></h1>
+<h2 id="workers-which-quarantine-media-must-be-stream-writers"><a class="header" href="#workers-which-quarantine-media-must-be-stream-writers">Workers which quarantine media must be stream writers</a></h2>
+<p>A new <a href="#the-quarantined_media_changes-stream"><code>quarantined_media_changes</code> stream writer</a> is
+introduced. Existing deployments which route the <code>/quarantine_media</code> endpoints to a
+worker (instead of the main process) <em>must</em> also add those workers to the
+<code>quarantined_media_changes</code> stream writer list. Quarantining media will not work without
+this.</p>
+<p>If your deployment does not use workers, or instead uses the main process for
+quarantining media, you do not need to make any changes to your configuration.</p>
+<h1 id="upgrading-to-v11500"><a class="header" href="#upgrading-to-v11500">Upgrading to v1.150.0</a></h1>
+<h2 id="removal-of-the-systemd-pip-extra"><a class="header" href="#removal-of-the-systemd-pip-extra">Removal of the <code>systemd</code> pip extra</a></h2>
+<p>The <code>matrix-synapse[systemd]</code> pip extra has been removed.
+If you use <code>systemd.journal.JournalHandler</code> in your logging configuration
+(e.g. <code>contrib/systemd/log_config.yaml</code>), you must now install
+<code>systemd-python</code> manually in Synapse’s runtime environment:</p>
+<pre><code class="language-bash">pip install systemd-python
+</code></pre>
+<p>No action is needed if you do not use journal logging, or if you installed
+Synapse from the Debian packages (which handle this automatically).</p>
+<h2 id="module-api-deprecation-of-the-deactivation-parameter-in-the-set_displayname-method"><a class="header" href="#module-api-deprecation-of-the-deactivation-parameter-in-the-set_displayname-method">Module API: Deprecation of the <code>deactivation</code> parameter in the <code>set_displayname</code> method</a></h2>
+<p>If you have Synapse modules installed that use the <code>set_displayname</code> method to change
+the display name of your users, please ensure that it doesn’t pass the optional
+<code>deactivation</code> parameter.</p>
+<p>This parameter is now deprecated and it is intended to be removed in 2027.
+No immediate change is necessary, however once the parameter is removed, modules passing it will produce errors.
+<a href="https://github.com/element-hq/synapse/issues/19546">Issue #19546</a> tracks this removal.</p>
+<p>From this version, when the parameter is passed, an error such as
+<code>Deprecated `deactivation` parameter passed to `set_displayname` Module API (value: False). This will break in 2027.</code> will be logged. The method will otherwise continue to work.</p>
+<h2 id="updated-request-log-format-processed-request-"><a class="header" href="#updated-request-log-format-processed-request-">Updated request log format (<code>Processed request: ...</code>)</a></h2>
+<p>The <a href="#request-log-format">request log format</a> has slightly changed to
+include <code>ru=(...)</code> and <code>db=(...)</code> labels to better disambiguate the number groupings.
+Previously, these values appeared without labels.</p>
+<p>This only matters if you have third-party tooling that parses the Synapse logs.</p>
 <h1 id="upgrading-to-v11460"><a class="header" href="#upgrading-to-v11460">Upgrading to v1.146.0</a></h1>
 <h2 id="drop-support-for-ubuntu-2504-plucky-puffin-and-add-support-for-2510-questing-quokka"><a class="header" href="#drop-support-for-ubuntu-2504-plucky-puffin-and-add-support-for-2510-questing-quokka">Drop support for Ubuntu 25.04 Plucky Puffin, and add support for 25.10 Questing Quokka</a></h2>
 <p>Ubuntu 25.04 Plucky Puffin <a href="https://endoflife.date/ubuntu">is end-of-life as of 17 Jan
@@ -4290,7 +4327,11 @@ shown.</p>
 </code></pre>
 <hr>
 <h3 id="use_frozen_dicts"><a class="header" href="#use_frozen_dicts"><code>use_frozen_dicts</code></a></h3>
-<p><em>(boolean)</em> Determines whether we should freeze the internal dict object in <code>FrozenEvent</code>. Freezing prevents bugs where we accidentally share e.g. signature dicts. However, freezing a dict is expensive. Defaults to <code>false</code>.</p>
+<p><em>(boolean)</em> Determines whether we should freeze the internal dict object in <code>FrozenEvent</code>. Freezing prevents bugs where we accidentally share e.g. signature dicts. However, freezing a dict is expensive.</p>
+<blockquote>
+<p>⚠️ <strong>Warning</strong> – This option is known to introduce a new class of <a href="https://github.com/element-hq/synapse/issues/18117">comparison bugs</a> in Synapse.</p>
+</blockquote>
+<p>Defaults to <code>false</code>.</p>
 <p>Example configuration:</p>
 <pre><code class="language-yaml">use_frozen_dicts: true
 </code></pre>
@@ -4673,6 +4714,9 @@ For more details, see the <a href="#using-a-forward-proxy-with-synapse">forward 
 </li>
 <li>
 <p><code>endpoint</code> (string): The URL where Synapse can reach MAS. This <em>must</em> have the <code>discovery</code> and <code>oauth</code> resources mounted. Defaults to <code>"http://localhost:8080"</code>.</p>
+</li>
+<li>
+<p><code>force_http2</code> (boolean): Force HTTP/2 over plaintext (H2C) when connecting to MAS. MAS supports this natively, but a reverse proxy between Synapse and MAS may not. Defaults to <code>false</code>.</p>
 </li>
 <li>
 <p><code>secret</code> (string|null): A shared secret that will be used to authenticate requests from and to MAS.</p>
@@ -7337,7 +7381,12 @@ These limits are applied in addition to the <code>max_upload_size</code> limit a
 <p>Defaults to <code>null</code>.</p>
 </li>
 <li>
-<p><code>update_profile_information</code> (boolean): Use this setting to keep a user’s profile fields in sync with information from the identity provider. Currently only syncing the displayname is supported. Fields are checked on every SSO login, and are updated if necessary. Note that enabling this option will override user profile information, regardless of whether users have opted-out of syncing that information when first signing in. Defaults to <code>false</code>.</p>
+<p><code>update_profile_information</code> (boolean): Use this setting to keep a user’s profile fields in sync with information from the identity provider. Fields are checked on every  SSO login, and are updated if necessary. Note that enabling this  option will override user profile information, regardless of whether  users have opted-out of syncing that information when first signing  in. Fields that will be synced:</p>
+<ul>
+<li>displayname</li>
+<li>picture - only if Synapse media repository is running in the main
+process (i.e. not workerized) and media is stored locally Defaults to <code>false</code>.</li>
+</ul>
 </li>
 </ul>
 <p>Example configuration:</p>
@@ -7949,7 +7998,7 @@ These limits are applied in addition to the <code>max_upload_size</code> limit a
 </code></pre>
 <hr>
 <h3 id="outbound_federation_restricted_to"><a class="header" href="#outbound_federation_restricted_to"><code>outbound_federation_restricted_to</code></a></h3>
-<p><em>(array)</em> When using workers, you can restrict outbound federation traffic to only go through a specific subset of workers. Any worker specified here must also be in the <a href="#instance_map"><code>instance_map</code></a>. <a href="#worker_replication_secret"><code>worker_replication_secret</code></a> must also be configured to authorize inter-worker communication.</p>
+<p><em>(array)</em> You can restrict outbound federation traffic to only go through a specific subset of workers including the <a href="https://element.io/en/server-suite/secure-border-gateways">Secure Border Gateway (SBG)</a>. Any worker specified here (including the SBG) must also be in the <a href="#instance_map"><code>instance_map</code></a>. <a href="#worker_replication_secret"><code>worker_replication_secret</code></a> must also be configured to authorize inter-worker communication.</p>
 <p>Also see the <a href="#restrict-outbound-federation-traffic-to-a-specific-set-of-workers">worker documentation</a> for more info.</p>
 <p><em>Added in Synapse 1.89.0.</em></p>
 <p>Defaults to <code>[]</code>.</p>
@@ -8256,6 +8305,8 @@ the homeserver config when following the <a href="#installation-instructions">in
 It should be named <code>&lt;SERVERNAME&gt;.log.config</code> by default.</p>
 <p>Hint: If you’re looking for a guide on what each of the fields in the “Processed request” log lines mean,
 see <a href="#request-log-format">Request log format</a>.</p>
+<p>If you use <code>systemd.journal.JournalHandler</code> in your own logging config, ensure
+<code>systemd-python</code> is installed in Synapse’s runtime environment.</p>
 <pre><code class="language-yaml"># Log configuration for Synapse.
 #
 # This is a YAML file containing a standard Python logging configuration
@@ -12140,9 +12191,9 @@ a response of <code>+PONG</code>.</p>
 virtualenv, these can be installed with:</p>
 <pre><code class="language-sh">pip install "matrix-synapse[redis]"
 </code></pre>
-<p>Note that these dependencies are included when synapse is installed with <code>pip install matrix-synapse[all]</code>. They are also included in the debian packages from
-<code>packages.matrix.org</code> and in the docker images at
-https://hub.docker.com/r/ectorim/synapse/.</p>
+<p>Note that these dependencies are included when Synapse is installed with <code>pip install matrix-synapse[all]</code>. They are also included in the <a href="#debianubuntu">Debian
+packages</a> and in the <a href="#docker-images-and-ansible-playbooks">Docker
+images</a>.</p>
 <p>To make effective use of the workers, you will need to configure an HTTP
 reverse-proxy such as nginx or haproxy, which will direct incoming requests to
 the correct worker, or to the main synapse instance. See
@@ -12616,6 +12667,12 @@ configured as stream writer for the <code>device_lists</code> stream:</p>
 ^/_matrix/client/(r0|v3|unstable)/keys/upload
 ^/_matrix/client/(api/v1|r0|v3|unstable)/keys/device_signing/upload$
 ^/_matrix/client/(api/v1|r0|v3|unstable)/keys/signatures/upload$
+</code></pre>
+<h5 id="the-quarantined_media_changes-stream"><a class="header" href="#the-quarantined_media_changes-stream">The <code>quarantined_media_changes</code> stream</a></h5>
+<p>The <code>quarantined_media_changes</code> stream supports multiple writers. The following endpoints
+can be handled by any worker, but should be routed directly to one of the workers
+configured as stream writer for the <code>quarantined_media_changes</code> stream:</p>
+<pre><code>^/_synapse/admin/v1/quarantine_media/.*$
 </code></pre>
 <h4 id="restrict-outbound-federation-traffic-to-a-specific-set-of-workers"><a class="header" href="#restrict-outbound-federation-traffic-to-a-specific-set-of-workers">Restrict outbound federation traffic to a specific set of workers</a></h4>
 <p>The
@@ -13232,6 +13289,12 @@ background updates which won’t be cancelled once started.</p>
 <ul>
 <li><code>populate_stats_process_rooms</code> - Recalculate the stats for all rooms.</li>
 <li><code>regenerate_directory</code> - Recalculate the <a href="#user-directory-api-implementation">user directory</a> if it is stale or out of sync.</li>
+<li><code>event_resign</code> - Re-sign all locally-sent events with the current signing key. This is useful after rotating the server’s signing key to ensure all historical events are signed with the new key. Optional additional parameters:
+<ul>
+<li><code>old_key</code> - Only re-sign events whose signature verifies against this key. Format: <code>"ed25519:key_id base64_public_key"</code> (e.g. <code>"ed25519:my_old_key XGX0JRS2Af3be3knz2fBiRbApjm2Dh61gXDJA8kcJNI"</code>).</li>
+<li><code>before_ts</code> - Only re-sign events with a <code>received_ts</code> less than this value (milliseconds since the epoch).</li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -13652,6 +13715,31 @@ not want to get quarantined, especially when
 <p>Where <code>media_id</code> is in the  form of <code>abcdefg12345...</code>.</p>
 <p>Response:</p>
 <pre><code class="language-json">{}
+</code></pre>
+<h2 id="listing-quarantined-media-changes"><a class="header" href="#listing-quarantined-media-changes">Listing quarantined media changes</a></h2>
+<p>When media is quarantined or unquarantined, a change record is created in the
+database. This API returns those change records in the order they were created.</p>
+<p><strong>Note</strong>: This API should be considered <em>best-effort</em> and expected to have missing or
+duplicate records. Currently, this only captures any media explicitly (un)quarantined by
+the media quarantine admin API, and the other cases are tracked by
+https://github.com/element-hq/synapse/issues/19672. Historical media uploaded before
+Synapse 1.152.0 is backfilled in a background update on a best-effort basis.</p>
+<p>Each page has a maximum of 100 records. The first page has the oldest records,
+paginating forwards with each <code>next_batch</code> value.</p>
+<p>Request:</p>
+<pre><code>GET /_synapse/admin/v1/media/quarantine_changes?from=2
+</code></pre>
+<p>Where <code>from</code> is the <code>next_batch</code> value from a previous request. It is optional
+and defaults to the first page (the value <code>0</code>).</p>
+<p>Response:</p>
+<pre><code class="language-json">{
+  "next_batch": 4,
+  "changes": [
+    { "origin": "example.org", "media_id": "abcdefg12345...", "quarantined": true },
+    { "origin": "example.org", "media_id": "abcdefg12345...", "quarantined": false },
+    { "origin": "another.example.org", "media_id": "abcdefg12345...", "quarantined": true }
+  ]
+}
 </code></pre>
 <h1 id="delete-local-media"><a class="header" href="#delete-local-media">Delete local media</a></h1>
 <p>This API deletes the <em>local</em> media from the disk of your own server.
@@ -14442,6 +14530,9 @@ end of the list.</p>
 If the room does not define a type, the value will be <code>null</code>.</li>
 <li><code>forgotten</code> - Whether all local users have
 <a href="https://spec.matrix.org/latest/client-server-api/#leaving-rooms">forgotten</a> the room.</li>
+<li><code>tombstoned</code> - Whether the room has been tombstoned (permanently closed).</li>
+<li><code>replacement_room</code> - The room ID of the new room that users should join instead, if this room was tombstoned. Will be
+<code>null</code> if the room has not been tombstoned, or if it was tombstoned without designating a successor room.</li>
 </ul>
 <p>The API is:</p>
 <pre><code>GET /_synapse/admin/v1/rooms/&lt;room_id&gt;
@@ -14466,7 +14557,9 @@ If the room does not define a type, the value will be <code>null</code>.</li>
   "history_visibility": "shared",
   "state_events": 93534,
   "room_type": "m.space",
-  "forgotten": false
+  "forgotten": false,
+  "tombstoned": false,
+  "replacement_room": null
 }
 </code></pre>
 <p><em>Changed in Synapse 1.66:</em> Added the <code>forgotten</code> key to the response body.</p>
@@ -15784,6 +15877,7 @@ is set to <code>true</code>:</p>
 <ul>
 <li>Remove the user’s display name</li>
 <li>Remove the user’s avatar URL</li>
+<li>Remove the user’s custom profile fields</li>
 <li>Mark the user as erased</li>
 </ul>
 <p>The following actions are <strong>NOT</strong> performed. The list may be incomplete.</p>
@@ -15913,7 +16007,7 @@ member are returned.</p>
 <h2 id="get-the-number-of-invites-sent-by-the-user"><a class="header" href="#get-the-number-of-invites-sent-by-the-user">Get the number of invites sent by the user</a></h2>
 <p>Fetches the number of invites sent by the provided user ID across all rooms
 after the given timestamp.</p>
-<pre><code>GET /_synapse/admin/v1/users/$user_id/sent_invite_count
+<pre><code>GET /_synapse/admin/v1/users/&lt;user_id&gt;/sent_invite_count
 </code></pre>
 <p><strong>Parameters</strong></p>
 <p>The following parameters should be set in the URL:</p>
@@ -15938,7 +16032,7 @@ into timestamps and vice versa.</li>
 <h2 id="get-the-cumulative-number-of-rooms-a-user-has-joined-after-a-given-timestamp"><a class="header" href="#get-the-cumulative-number-of-rooms-a-user-has-joined-after-a-given-timestamp">Get the cumulative number of rooms a user has joined after a given timestamp</a></h2>
 <p>Fetches the number of rooms that the user joined after the given timestamp, even
 if they have subsequently left/been banned from those rooms.</p>
-<pre><code>GET /_synapse/admin/v1/users/$&lt;user_id/cumulative_joined_room_count
+<pre><code>GET /_synapse/admin/v1/users/&lt;user_id&gt;/cumulative_joined_room_count
 </code></pre>
 <p><strong>Parameters</strong></p>
 <p>The following parameters should be set in the URL:</p>
@@ -16612,7 +16706,7 @@ for more information.</p>
 <a href="https://matrix.org/docs/spec/client_server/r0.6.0#get-matrix-client-r0-register-available">/_matrix/client/r0/register/available</a> API.</p>
 <h2 id="find-a-user-based-on-their-id-in-an-auth-provider"><a class="header" href="#find-a-user-based-on-their-id-in-an-auth-provider">Find a user based on their ID in an auth provider</a></h2>
 <p>The API is:</p>
-<pre><code>GET /_synapse/admin/v1/auth_providers/$provider/users/$external_id
+<pre><code>GET /_synapse/admin/v1/auth_providers/&lt;provider&gt;/users/&lt;external_id&gt;
 </code></pre>
 <p>When a user matched the given ID for the given provider, an HTTP code <code>200</code> with a response body like the following is returned:</p>
 <pre><code class="language-json">{
@@ -16636,7 +16730,7 @@ for more information.</p>
 <p><em>Added in Synapse 1.68.0.</em></p>
 <h2 id="find-a-user-based-on-their-third-party-id-threepid-or-3pid"><a class="header" href="#find-a-user-based-on-their-third-party-id-threepid-or-3pid">Find a user based on their Third Party ID (ThreePID or 3PID)</a></h2>
 <p>The API is:</p>
-<pre><code>GET /_synapse/admin/v1/threepid/$medium/users/$address
+<pre><code>GET /_synapse/admin/v1/threepid/&lt;medium&gt;/users/&lt;address&gt;
 </code></pre>
 <p>When a user matched the given address for the given medium, an HTTP code <code>200</code> with a response body like the following is returned:</p>
 <pre><code class="language-json">{
@@ -16665,7 +16759,7 @@ Redactions for non-local users are issued using the admin user, and will fail in
 admin user is not admin/does not have the specified power level to issue redactions. An option
 is provided to override the default and allow the admin to issue the redactions in all cases.</p>
 <p>The API is</p>
-<pre><code>POST /_synapse/admin/v1/user/$user_id/redact
+<pre><code>POST /_synapse/admin/v1/user/&lt;user_id&gt;/redact
 
 {
   "rooms": ["!roomid1", "!roomid2"]
@@ -16703,7 +16797,7 @@ where the admin does not have the sufficient power level to issue the redactions
 The status can be queried up to 24 hours after completion of the task,
 or until Synapse is restarted (whichever happens first).</p>
 <p>The API is:</p>
-<pre><code>GET /_synapse/admin/v1/user/redact_status/$redact_id
+<pre><code>GET /_synapse/admin/v1/user/redact_status/&lt;redact_id&gt;
 </code></pre>
 <p>A response body like the following is returned:</p>
 <pre><code>{
@@ -17566,8 +17660,8 @@ VALUES ('USER_ID', (EXTRACT(epoch FROM NOW()) * 1000)::BIGINT);
 <h1 id="request-log-format"><a class="header" href="#request-log-format">Request log format</a></h1>
 <p>HTTP request logs are written by synapse (see <a href="https://github.com/element-hq/synapse/tree/develop/synapse/http/site.py"><code>synapse/http/site.py</code></a> for details).</p>
 <p>See the following for how to decode the dense data available from the default logging configuration.</p>
-<pre><code>2020-10-01 12:00:00,000 - synapse.access.http.8008 - 311 - INFO - PUT-1000- 192.168.0.1 - 8008 - {another-matrix-server.com} Processed request: 0.100sec/-0.000sec (0.000sec, 0.000sec) (0.001sec/0.090sec/3) 11B !200 "PUT /_matrix/federation/v1/send/1600000000000 HTTP/1.1" "Synapse/1.20.1" [0 dbevts]
--AAAAAAAAAAAAAAAAAAAAA-   -BBBBBBBBBBBBBBBBBBBBBB-   -C-   -DD-   -EEEEEE-  -FFFFFFFFF-   -GG-    -HHHHHHHHHHHHHHHHHHHHHHH-                     -IIIIII- -JJJJJJJ-  -KKKKKK-, -LLLLLL-  -MMMMMMM- -NNNNNN- O  -P- -QQ-  -RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR-   -SSSSSSSSSSSS-   -TTTTTT-
+<pre><code>2020-10-01 12:00:00,000 - synapse.access.http.8008 - 311 - INFO - PUT-1000- 192.168.0.1 - 8008 - {another-matrix-server.com} Processed request: 0.100sec/-0.000sec ru=(0.000sec, 0.000sec) db=(0.001sec/0.090sec/3) 11B !200 "PUT /_matrix/federation/v1/send/1600000000000 HTTP/1.1" "Synapse/1.20.1" [0 dbevts]
+-AAAAAAAAAAAAAAAAAAAAA-   -BBBBBBBBBBBBBBBBBBBBBB-   -C-   -DD-   -EEEEEE-  -FFFFFFFFF-   -GG-    -HHHHHHHHHHHHHHHHHHHHHHH-                     -IIIIII- -JJJJJJJ-     -KKKKKK-, -LLLLLL-      -MMMMMM- -NNNNNN- O  -P- -QQ-  -RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR-   -SSSSSSSSSSSS-   -TTTTTT-
 </code></pre>
 <div class="table-wrapper">
 <table>
@@ -18038,38 +18132,8 @@ configuration:</p>
 </ul>
 <p>For more details about other configurations, see the <a href="https://github.com/matrix-org/sytest/blob/develop/docker/README.md">Docker-specific documentation in the SyTest repo</a>.</p>
 <h2 id="run-the-integration-tests-complement"><a class="header" href="#run-the-integration-tests-complement">Run the integration tests (<a href="https://github.com/matrix-org/complement">Complement</a>).</a></h2>
-<p><a href="https://github.com/matrix-org/complement">Complement</a> is a suite of black box tests that can be run on any homeserver implementation. It can also be thought of as end-to-end (e2e) tests.</p>
-<p>It’s often nice to develop on Synapse and write Complement tests at the same time.
-Here is how to run your local Synapse checkout against your local Complement checkout.</p>
-<p>(checkout <a href="https://github.com/matrix-org/complement"><code>complement</code></a> alongside your <code>synapse</code> checkout)</p>
-<pre><code class="language-sh">COMPLEMENT_DIR=../complement ./scripts-dev/complement.sh
-</code></pre>
-<p>To run a specific test file, you can pass the test name at the end of the command. The name passed comes from the naming structure in your Complement tests. If you’re unsure of the name, you can do a full run and copy it from the test output:</p>
-<pre><code class="language-sh">COMPLEMENT_DIR=../complement ./scripts-dev/complement.sh -run TestImportHistoricalMessages
-</code></pre>
-<p>To run a specific test, you can specify the whole name structure:</p>
-<pre><code class="language-sh">COMPLEMENT_DIR=../complement ./scripts-dev/complement.sh -run TestImportHistoricalMessages/parallel/Historical_events_resolve_in_the_correct_order
-</code></pre>
-<p>The above will run a monolithic (single-process) Synapse with SQLite as the database. For other configurations, try:</p>
-<ul>
-<li>Passing <code>POSTGRES=1</code> as an environment variable to use the Postgres database instead.</li>
-<li>Passing <code>WORKERS=1</code> as an environment variable to use a workerised setup instead. This option implies the use of Postgres.
-<ul>
-<li>If setting <code>WORKERS=1</code>, optionally set <code>WORKER_TYPES=</code> to declare which worker
-types you wish to test. A simple comma-delimited string containing the worker types
-defined from the <code>WORKERS_CONFIG</code> template in
-<a href="https://github.com/element-hq/synapse/blob/develop/docker/configure_workers_and_start.py#L54">here</a>.
-A safe example would be <code>WORKER_TYPES="federation_inbound, federation_sender, synchrotron"</code>.
-See the <a href="#scaling-synapse-via-workers">worker documentation</a> for additional information on workers.</li>
-</ul>
-</li>
-<li>Passing <code>ASYNCIO_REACTOR=1</code> as an environment variable to use the Twisted asyncio reactor instead of the default one.</li>
-<li>Passing <code>PODMAN=1</code> will use the <a href="https://podman.io/">podman</a> container runtime, instead of docker.</li>
-<li>Passing <code>UNIX_SOCKETS=1</code> will utilise Unix socket functionality for Synapse, Redis, and Postgres(when applicable).</li>
-</ul>
-<p>To increase the log level for the tests, set <code>SYNAPSE_TEST_LOG_LEVEL</code>, e.g:</p>
-<pre><code class="language-sh">SYNAPSE_TEST_LOG_LEVEL=DEBUG COMPLEMENT_DIR=../complement ./scripts-dev/complement.sh -run TestImportHistoricalMessages
-</code></pre>
+<p>See our <a href="https://github.com/element-hq/synapse/tree/develop/complement">Complement docs</a>
+for how to use the <code>./scripts-dev/complement.sh</code> test runner script.</p>
 <h3 id="prettier-formatting-with-gotestfmt"><a class="header" href="#prettier-formatting-with-gotestfmt">Prettier formatting with <code>gotestfmt</code></a></h3>
 <p>If you want to format the output of the tests the same way as it looks in CI,
 install <a href="https://github.com/GoTestTools/gotestfmt">gotestfmt</a>.</p>
@@ -18077,16 +18141,6 @@ install <a href="https://github.com/GoTestTools/gotestfmt">gotestfmt</a>.</p>
 <pre><code class="language-sh">COMPLEMENT_DIR=../complement ./scripts-dev/complement.sh -json | gotestfmt -hide successful-tests
 </code></pre>
 <p>(Remove <code>-hide successful-tests</code> if you don’t want to hide successful tests.)</p>
-<h3 id="access-database-for-homeserver-after-complement-test-runs"><a class="header" href="#access-database-for-homeserver-after-complement-test-runs">Access database for homeserver after Complement test runs.</a></h3>
-<p>If you’re curious what the database looks like after you run some tests, here are some steps to get you going in Synapse:</p>
-<ol>
-<li>In your Complement test comment out <code>defer deployment.Destroy(t)</code> and replace with <code>defer time.Sleep(2 * time.Hour)</code> to keep the homeserver running after the tests complete</li>
-<li>Start the Complement tests</li>
-<li>Find the name of the container, <code>docker ps -f name=complement_</code> (this will filter for just the Compelement related Docker containers)</li>
-<li>Access the container replacing the name with what you found in the previous step: <code>docker exec -it complement_1_hs_with_application_service.hs1_2 /bin/bash</code></li>
-<li>Install sqlite (database driver), <code>apt-get update &amp;&amp; apt-get install -y sqlite3</code></li>
-<li>Then run <code>sqlite3</code> and open the database <code>.open /conf/homeserver.db</code> (this db path comes from the Synapse homeserver.yaml)</li>
-</ol>
 <h1 id="9-submit-your-patch"><a class="header" href="#9-submit-your-patch">9. Submit your patch.</a></h1>
 <p>Once you’re happy with your patch, it’s time to prepare a Pull Request.</p>
 <p>To prepare a Pull Request, please:</p>
@@ -18994,7 +19048,7 @@ sense (from a product point-of-view) to enable features by default. This is
 expected and not an issue.</p>
 <p>It is not a requirement for experimental features to be behind a configuration flag,
 but one should be used if unsure.</p>
-<p>New experimental configuration flags should be added under the <code>experimental</code>
+<p>New experimental configuration flags should be added under the <code>experimental_features</code>
 configuration key (see the <code>synapse.config.experimental</code> file) and either explain
 (briefly) what is being enabled, or include the MSC number.
 The configuration flag should link to the tracking issue for the experimental feature (see below).</p>
@@ -19031,7 +19085,7 @@ or when the feature is turned on/off</li>
 <p>This is a quick cheat sheet for developers on how to use <a href="https://python-poetry.org/"><code>poetry</code></a>.</p>
 <h1 id="installing"><a class="header" href="#installing">Installing</a></h1>
 <p>See the <a href="#4-install-the-dependencies">contributing guide</a>.</p>
-<p>Developers should use Poetry 1.3.2 or higher. If you encounter problems related
+<p>Developers should use Poetry 2.2.0 or higher. If you encounter problems related
 to poetry, please <a href="#check-the-version-of-poetry-with-poetry---version">double-check your poetry version</a>.</p>
 <h1 id="background-1"><a class="header" href="#background-1">Background</a></h1>
 <p>Synapse uses a variety of third-party Python packages to function as a homeserver.
@@ -20244,6 +20298,8 @@ Readers must also advance their record of the writer’s current position for th
 necessary registration and event handling.</p>
 <p><strong>Create your stream:</strong></p>
 <ul>
+<li>Create a Postgres-specific database delta file to <a href="https://github.com/element-hq/synapse/blob/35b55e962aa0bed3b2da5a3c12e3783ddf7604ca/synapse/storage/schema/main/delta/93/01_sticky_events_seq.sql.postgres#L14-L18">add a new <code>SEQUENCE</code></a> (this will be referenced by the <code>MultiWriterIdGenerator</code> below).</li>
+<li>Update <code>synapse/_scripts/synapse_port_db.py</code> so it knows about your new <code>SEQUENCE</code>: <a href="https://github.com/element-hq/synapse/blob/35b55e962aa0bed3b2da5a3c12e3783ddf7604ca/synapse/_scripts/synapse_port_db.py#L883C24-L888">add a new <code>_setup_sequence(...)</code></a></li>
 <li><a href="https://github.com/element-hq/synapse/blob/4367fb2d078c52959aeca0fe6874539c53e8360d/synapse/replication/tcp/streams/_base.py#L728">create a stream class and stream row class</a>
 <ul>
 <li>will need an <a href="https://github.com/element-hq/synapse/blob/4367fb2d078c52959aeca0fe6874539c53e8360d/synapse/storage/databases/main/thread_subscriptions.py#L75">ID generator</a>
@@ -20280,6 +20336,14 @@ necessary registration and event handling.</p>
 </ul>
 </li>
 <li>add local-only <a href="https://github.com/element-hq/synapse/blob/4367fb2d078c52959aeca0fe6874539c53e8360d/synapse/storage/databases/main/thread_subscriptions.py#L201">invalidations to your writer transactions</a></li>
+</ul>
+<p><strong>Update docs:</strong></p>
+<ul>
+<li>Update the <a href="https://github.com/element-hq/synapse/blob/develop/docs/workers.md#stream-writers"><em>Stream
+writers</em></a>
+section in the worker docs with a new section for the stream</li>
+<li>If this stream can only be handled by specific workers, add a new section to the
+<a href="https://github.com/element-hq/synapse/blob/develop/docs/upgrade.md">upgrade notes</a>.</li>
 </ul>
 <p><strong>For streams to be used in sync:</strong></p>
 <ul>
