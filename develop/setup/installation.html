@@ -37,7 +37,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-44556c21.js";
+            window.path_to_searchindex_js = "../searchindex-db226944.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-64310643.js"></script>
@@ -336,7 +336,7 @@ and mounting it to <code>/var/synapse</code> should be taken into consideration.
 <p>System requirements:</p>
 <ul>
 <li>POSIX-compliant system (tested on Linux &amp; OS X)</li>
-<li>Python 3.10 or later, up to Python 3.13.</li>
+<li>Python 3.11 or later, up to Python 3.14.</li>
 <li>At least 1GB of free RAM if you want to join large public rooms like #matrix:matrix.org</li>
 </ul>
 <p>If building on an uncommon architecture for which pre-built wheels are
@@ -407,7 +407,7 @@ header files for Python C extensions.</p>
 <h5 id="centosfedora"><a class="header" href="#centosfedora">CentOS/Fedora</a></h5>
 <p>Installing prerequisites on CentOS or Fedora Linux:</p>
 <pre><code class="language-sh">sudo dnf install libtiff-devel libjpeg-devel libzip-devel freetype-devel \
-                 libwebp-devel libxml2-devel libxslt-devel libpq-devel \
+                 libwebp-devel libxslt-devel libpq-devel \
                  python3-virtualenv libffi-devel openssl-devel python3-devel
 sudo dnf group install "Development Tools"
 </code></pre>
@@ -653,9 +653,6 @@ previewing in the <code>url_preview_ip_range_blacklist</code> configuration para
 This is critical from a security perspective to stop arbitrary Matrix users
 spidering ‘internal’ URLs on your network. At the very least we recommend that
 your loopback and RFC1918 IP addresses are blacklisted.</p>
-<p>This also requires the optional <code>lxml</code> python dependency to be  installed. This
-in turn requires the <code>libxml2</code> library to be available - on  Debian/Ubuntu this
-means <code>apt-get install libxml2-dev</code>, or equivalent for your OS.</p>
 <h3 id="backups"><a class="header" href="#backups">Backups</a></h3>
 <p>Don’t forget to take <a href="../usage/administration/backups.html">backups</a> of your new server!</p>
 <h3 id="troubleshooting-installation"><a class="header" href="#troubleshooting-installation">Troubleshooting Installation</a></h3>

@@ -37,7 +37,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-44556c21.js";
+            window.path_to_searchindex_js = "searchindex-db226944.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-64310643.js"></script>
@@ -415,6 +415,7 @@ information.</p>
 ^/_matrix/client/(r0|v3)/delete_devices$
 ^/_matrix/client/(api/v1|r0|v3|unstable)/devices(/|$)
 ^/_matrix/client/versions$
+^/_matrix/client/(v1|unstable/org.matrix.msc2965)/auth_metadata$
 ^/_matrix/client/(api/v1|r0|v3|unstable)/voip/turnServer$
 ^/_matrix/client/(api/v1|r0|v3|unstable)/rooms/.*/event/
 ^/_matrix/client/(api/v1|r0|v3|unstable)/joined_rooms$
@@ -457,8 +458,12 @@ information.</p>
 # User directory search requests
 ^/_matrix/client/(r0|v3|unstable)/user_directory/search$
 
-# Unstable MSC4140 support
-^/_matrix/client/unstable/org.matrix.msc4140/delayed_events(/.*/restart)?$
+# Unstable MSC4140 support (delayed event scheduling &amp; management)
+^/_matrix/client/unstable/org.matrix.msc4140/rooms/.*/delayed_event/
+^/_matrix/client/unstable/org.matrix.msc4140/delayed_events(/[^/]+(/restart)?)?$
+
+# Stabilised Delegated Authentication support (`matrix_authentication_service.enabled: true`)
+^/_synapse/mas/
 </code></pre>
 <p>Additionally, the following REST endpoints can be handled for GET requests:</p>
 <pre><code># Push rules requests
@@ -482,7 +487,7 @@ for the room are in flight:</p>
 </code></pre>
 <p>Additionally, the following endpoints should be included if Synapse is configured
 to use SSO (you only need to include the ones for whichever SSO provider you’re
-using):</p>
+using) and delegated authentication isn’t enabled:</p>
 <pre><code># for all SSO providers
 ^/_matrix/client/(api/v1|r0|v3|unstable)/login/sso/redirect
 ^/_synapse/client/pick_idp$
@@ -714,9 +719,14 @@ configured as stream writer for the <code>device_lists</code> stream:</p>
 </code></pre>
 <h5 id="the-quarantined_media_changes-stream"><a class="header" href="#the-quarantined_media_changes-stream">The <code>quarantined_media_changes</code> stream</a></h5>
 <p>The <code>quarantined_media_changes</code> stream supports multiple writers. The following endpoints
-can be handled by any worker, but should be routed directly to one of the workers
-configured as stream writer for the <code>quarantined_media_changes</code> stream:</p>
+must be routed directly to one of the workers configured as stream writer for the
+<code>quarantined_media_changes</code> stream (which must also be able to run the media
+repository, as these endpoints are only registered on media-capable workers):</p>
 <pre><code>^/_synapse/admin/v1/quarantine_media/.*$
+^/_synapse/admin/v1/room/.*/media/quarantine$
+^/_synapse/admin/v1/user/.*/media/quarantine$
+^/_synapse/admin/v1/media/quarantine/.*$
+^/_synapse/admin/v1/media/unquarantine/.*$
 </code></pre>
 <h4 id="restrict-outbound-federation-traffic-to-a-specific-set-of-workers"><a class="header" href="#restrict-outbound-federation-traffic-to-a-specific-set-of-workers">Restrict outbound federation traffic to a specific set of workers</a></h4>
 <p>The

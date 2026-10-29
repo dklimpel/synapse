@@ -38,7 +38,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-44556c21.js";
+            window.path_to_searchindex_js = "searchindex-db226944.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-64310643.js"></script>
@@ -411,7 +411,7 @@ and mounting it to <code>/var/synapse</code> should be taken into consideration.
 <p>System requirements:</p>
 <ul>
 <li>POSIX-compliant system (tested on Linux &amp; OS X)</li>
-<li>Python 3.10 or later, up to Python 3.13.</li>
+<li>Python 3.11 or later, up to Python 3.14.</li>
 <li>At least 1GB of free RAM if you want to join large public rooms like #matrix:matrix.org</li>
 </ul>
 <p>If building on an uncommon architecture for which pre-built wheels are
@@ -482,7 +482,7 @@ header files for Python C extensions.</p>
 <h5 id="centosfedora"><a class="header" href="#centosfedora">CentOS/Fedora</a></h5>
 <p>Installing prerequisites on CentOS or Fedora Linux:</p>
 <pre><code class="language-sh">sudo dnf install libtiff-devel libjpeg-devel libzip-devel freetype-devel \
-                 libwebp-devel libxml2-devel libxslt-devel libpq-devel \
+                 libwebp-devel libxslt-devel libpq-devel \
                  python3-virtualenv libffi-devel openssl-devel python3-devel
 sudo dnf group install "Development Tools"
 </code></pre>
@@ -728,9 +728,6 @@ previewing in the <code>url_preview_ip_range_blacklist</code> configuration para
 This is critical from a security perspective to stop arbitrary Matrix users
 spidering ‘internal’ URLs on your network. At the very least we recommend that
 your loopback and RFC1918 IP addresses are blacklisted.</p>
-<p>This also requires the optional <code>lxml</code> python dependency to be  installed. This
-in turn requires the <code>libxml2</code> library to be available - on  Debian/Ubuntu this
-means <code>apt-get install libxml2-dev</code>, or equivalent for your OS.</p>
 <h3 id="backups"><a class="header" href="#backups">Backups</a></h3>
 <p>Don’t forget to take <a href="#how-to-back-up-a-synapse-homeserver">backups</a> of your new server!</p>
 <h3 id="troubleshooting-installation"><a class="header" href="#troubleshooting-installation">Troubleshooting Installation</a></h3>
@@ -774,6 +771,23 @@ However, you should <em>not</em> host your Synapse on <code>A.example1.com</code
 mentioned in MXIDs hosted on that server.</p>
 <p>Following this advice ensures that even if an XSS is found in Synapse, the
 impact to other applications will be minimal.</p>
+<h2 id="firewall-configuration"><a class="header" href="#firewall-configuration">Firewall configuration</a></h2>
+<p>If your Matrix server is secured by a firewall, firewall rules for two different purposes are required.</p>
+<p>Client access to a Synapse server runs via the client port which is TCP port 443 by default. The client port has to be allowed inbound.</p>
+<p>Federation to exchange messages with other Matrix servers runs via TCP port 8448 by default or alternatively via regular HTTPS TCP port 443 (usually if run with <a href="#delegation-of-incoming-federation-traffic">delegation</a> and/or behind a <a href="#using-a-reverse-proxy-with-synapse">reverse proxy</a>). So to allow federation in a firewall, make sure to allow the federation port of your Synapse server inbound.</p>
+<p>If you have outbound access limited by a firewall allowlist, make sure both TCP ports 443 <strong>and</strong> 8448 are allowed outbound.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Direction</th><th>Port</th><th>Protocol</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td>Inbound</td><td>443</td><td>TCP</td><td>Client access</td></tr>
+<tr><td>Inbound</td><td>8448 and/or 443</td><td>TCP</td><td>Federation inbound, depending on the federation port used</td></tr>
+<tr><td>Outbound</td><td>8448 <strong>and</strong> 443</td><td>TCP</td><td>Federation outbound, both ports are usually used</td></tr>
+</tbody>
+</table>
+</div>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="using-postgres"><a class="header" href="#using-postgres">Using Postgres</a></h1>
 <p>The minimum supported version of PostgreSQL is determined by the <a href="#deprecation-policy">Dependency
@@ -988,8 +1002,10 @@ has already occurred, and such duplicate rows will need to be manually removed.<
 <a href="https://nginx.org/en/docs/http/ngx_http_proxy_module.html">nginx</a>,
 <a href="https://httpd.apache.org/docs/current/mod/mod_proxy_http.html">Apache</a>,
 <a href="https://caddyserver.com/docs/quick-starts/reverse-proxy">Caddy</a>,
-<a href="https://www.haproxy.org/">HAProxy</a> or
-<a href="https://man.openbsd.org/relayd.8">relayd</a> in front of Synapse.
+<a href="https://www.haproxy.org/">HAProxy</a>,
+<a href="https://man.openbsd.org/relayd.8">relayd</a> or
+<a href="https://www.lighttpd.net/">lighttpd</a>
+in front of Synapse.
 This has the advantage of being able to expose the default HTTPS port (443) to Matrix
 clients without requiring Synapse to bind to a privileged port (port numbers less than
 1024), avoiding the need for <code>CAP_NET_BIND_SERVICE</code> or running as root.</p>
@@ -1044,7 +1060,9 @@ reverse proxy is using.</p>
         proxy_pass http://localhost:8008;
         proxy_set_header X-Forwarded-For $remote_addr;
         proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_set_header Host $host:$server_port;
+        # If clients reach Synapse on a non-default port, use `$http_host` instead
+        # so the port is kept, and include that port in `public_baseurl`.
+        proxy_set_header Host $host;
 
         # Nginx by default only allows file uploads up to 1M in size
         # Increase client_max_body_size to match max_upload_size defined in homeserver.yaml
@@ -1252,6 +1270,84 @@ relay "matrix_federation" {
     listen on egress port 8448 tls
     protocol "matrix"
     forward to &lt;matrixserver&gt; port 8008 check tcp
+}
+</code></pre>
+<h3 id="lighttpd"><a class="header" href="#lighttpd">lighttpd</a></h3>
+<pre><code class="language-conf">server.modules = (
+    "mod_rewrite",
+    "mod_redirect",
+    "mod_access",
+    "mod_setenv",
+    "mod_openssl",
+    "mod_proxy",
+    "mod_accesslog"
+)
+
+server.username      = "lighttpd"
+server.groupname     = "lighttpd"
+
+# We set this to "disable" and use IPv6 `[::]` explicitly below,
+# in order to listen on all incoming IPv6 addresses.
+#
+# If you only want to listen on specific IPv6 addresses, set this
+# to "enable" and specify said addresses below.
+server.use-ipv6 = "disable"
+
+ssl.pemfile = "/etc/lighttpd/cert+privkey.pem"
+ssl.ca-file = "/etc/lighttpd/fullchain.pem"
+
+# redirect HTTP traffic to HTTPS, same for IPv6 below
+$SERVER["socket"] == "0.0.0.0:80" {
+    url.redirect = (
+        "" =&gt; "https://${url.authority.noport}${url.path}${qsa}"
+    )
+}
+$SERVER["socket"] == "0.0.0.0:443" { ssl.engine = "enable" }
+$SERVER["socket"] == "0.0.0.0:8448" { ssl.engine = "enable" }
+$SERVER["socket"] == "[::]:80" {
+    url.redirect = (
+        "" =&gt; "https://${url.authority.noport}${url.path}${qsa}"
+    )
+}
+$SERVER["socket"] == "[::]:443" { ssl.engine = "enable" }
+$SERVER["socket"] == "[::]:8448" {  ssl.engine = "enable" }
+
+
+
+# both lighttpd and synapse need permissions for socket r/w
+$HTTP["url"] =~ "(/_matrix|_synapse/admin|/_synapse/client)" {
+    proxy.balance = "hash"
+    proxy.server = ( 
+        "" =&gt; ( 
+            "backend-socket" =&gt; (
+                "host" =&gt; "/var/lib/synapse/main_public.sock",
+                "port" =&gt; 0
+            )
+        )
+    )
+    proxy.forwarded = (
+        "for" =&gt; 1,
+        "proto" =&gt; 1,
+        "host" =&gt; 1,
+    )
+}
+# protect admin access IPv6 ULA only
+$HTTP["remoteip"] !="fd00::/8" {
+    $HTTP["url"] =~ "^/_synapse/admin/" {
+        url.access-deny = ( "" )
+    }
+}
+</code></pre>
+<p><a href="#delegation-of-incoming-federation-traffic">Delegation</a> example:</p>
+<pre><code class="language-conf">url.rewrite-once = (
+    "^/\.well-known/matrix/client$" =&gt; "/.well-known/matrix/client.json",
+    "^/\.well-known/matrix/server$" =&gt; "/.well-known/matrix/server.json"
+)
+
+# This condition intentionally matches the post-rewrite URLs.
+$HTTP["url"] =~ "^/\.well-known/matrix/(client|server)\.json$" {
+    mimetype.assign = ( ".json" =&gt; "application/json" )
+    setenv.set-response-header = ( "Access-Control-Allow-Origin" =&gt; "*" )
 }
 </code></pre>
 <h2 id="health-check-endpoint"><a class="header" href="#health-check-endpoint">Health check endpoint</a></h2>
@@ -2014,6 +2110,63 @@ database migrations are complete. You should wait until background updates from
 each upgrade are complete before moving on to the next upgrade, to avoid
 stacking them up. You can monitor the currently running background updates with
 <a href="#status">the Admin API</a>.</p>
+<h1 id="upgrading-to-v11640"><a class="header" href="#upgrading-to-v11640">Upgrading to v1.164.0</a></h1>
+<h2 id="python-311-is-now-required"><a class="header" href="#python-311-is-now-required">Python 3.11+ is now required</a></h2>
+<p>The minimum supported Python version has been increased from v3.10 to v3.11.
+You will need Python 3.11+ to run Synapse v1.164.0.</p>
+<p>If you use current versions of the
+<a href="#docker-images-and-ansible-playbooks">matrixorg/synapse</a>
+Docker images, no action is required.</p>
+<h1 id="upgrading-to-v11630"><a class="header" href="#upgrading-to-v11630">Upgrading to v1.163.0</a></h1>
+<h2 id="limit_profile_requests_to_users_who_share_rooms-now-requires-require_auth_for_profile_requests"><a class="header" href="#limit_profile_requests_to_users_who_share_rooms-now-requires-require_auth_for_profile_requests"><code>limit_profile_requests_to_users_who_share_rooms</code> now requires <code>require_auth_for_profile_requests</code></a></h2>
+<p>The shared-room check enabled by
+<a href="#limit_profile_requests_to_users_who_share_rooms"><code>limit_profile_requests_to_users_who_share_rooms</code></a>
+is only applied to authenticated requests, and profile requests are only
+authenticated when
+<a href="#require_auth_for_profile_requests"><code>require_auth_for_profile_requests</code></a>
+is enabled. Enabling the former without the latter therefore never restricted
+any profile lookup.</p>
+<p>Synapse will now refuse to start with that combination. If you have
+<code>limit_profile_requests_to_users_who_share_rooms: true</code> in your configuration,
+either also set <code>require_auth_for_profile_requests: true</code>, or remove the option to
+keep the behaviour you have today.</p>
+<h2 id="privacy-preserving-requesttoken-responses-are-now-enabled-by-default"><a class="header" href="#privacy-preserving-requesttoken-responses-are-now-enabled-by-default">Privacy-preserving <code>/requestToken</code> responses are now enabled by default</a></h2>
+<p>The default value of <code>request_token_inhibit_3pid_errors</code> has changed from <code>false</code>
+to <code>true</code>. Synapse will now conceal whether an email address is associated with an
+account when responding to <code>/requestToken</code> requests, unless the setting is
+explicitly configured as <code>false</code>.</p>
+<p>Administrators who rely on the previous responses can retain them by adding the
+following to their configuration:</p>
+<pre><code class="language-yaml">request_token_inhibit_3pid_errors: false
+</code></pre>
+<h1 id="upgrading-to-v11610"><a class="header" href="#upgrading-to-v11610">Upgrading to v1.161.0</a></h1>
+<h2 id="deprecation-of-matrix_rtclivekit_service_url"><a class="header" href="#deprecation-of-matrix_rtclivekit_service_url">Deprecation of <code>matrix_rtc.livekit_service_url</code></a></h2>
+<p>When configuring the MatrixRTC LiveKit transport, the <code>livekit_service_url</code> is now
+deprecated but should continue to be listed to ensure backwards compatibility with
+older clients. A new sibling <code>url</code> config property is added that should be set to
+your SFU’s WebSocket URL. Clients that support <code>url</code> will use the Client-Server API
+to (indirectly) interact with the LiveKit authorization service. The service needs
+to be set up as an application service in order to support these endpoints. See
+https://github.com/element-hq/lk-jwt-service and
+https://element-hq.github.io/synapse/v1.161/usage/configuration/config_documentation.html#matrix_rtc
+for further details.</p>
+<h1 id="upgrading-to-v11590"><a class="header" href="#upgrading-to-v11590">Upgrading to v1.159.0</a></h1>
+<h2 id="change-of-signing-key-expiry-date-for-the-debianubuntu-package-repository-2026"><a class="header" href="#change-of-signing-key-expiry-date-for-the-debianubuntu-package-repository-2026">Change of signing key expiry date for the Debian/Ubuntu package repository (2026)</a></h2>
+<p>Administrators using the Debian/Ubuntu packages from <code>packages.matrix.org</code>,
+please be aware that we have recently updated the expiry date on the repository’s GPG signing key,
+but this change must be imported into your keyring.</p>
+<p>If you have the <code>matrix-org-archive-keyring</code> package installed and it updates before the current key expires, this should
+happen automatically.</p>
+<p>Otherwise, if you see an error similar to <code>The following signatures were invalid: EXPKEYSIG F473DD4473365DE1</code>, you
+will need to get a fresh copy of the keys. You can do so with:</p>
+<pre><code class="language-sh">sudo wget -O /usr/share/keyrings/matrix-org-archive-keyring.gpg https://packages.matrix.org/debian/matrix-org-archive-keyring.gpg
+</code></pre>
+<p>The old version of the key will expire on <code>2027-03-15</code>.</p>
+<h1 id="upgrading-to-v11580"><a class="header" href="#upgrading-to-v11580">Upgrading to v1.158.0</a></h1>
+<h2 id="drop-support-for-ubuntu-2510-questing-quokka-add-support-for-ubuntu-2604-resolute-raccoon"><a class="header" href="#drop-support-for-ubuntu-2510-questing-quokka-add-support-for-ubuntu-2604-resolute-raccoon">Drop support for Ubuntu 25.10 ‘Questing Quokka’, add support for Ubuntu 26.04 ‘Resolute Raccoon’</a></h2>
+<p>Ubuntu 25.10 ‘Questing Quokka’ <a href="https://endoflife.date/ubuntu">is end-of-life as of
+2026-07-01</a>. This release drops support for Ubuntu 25.10,
+and in its place adds support for Ubuntu 26.04 ‘Resolute Raccoon’.</p>
 <h1 id="upgrading-to-v11570"><a class="header" href="#upgrading-to-v11570">Upgrading to v1.157.0</a></h1>
 <h2 id="msc3861-auth-delegation-must-be-migrated-to-stable-matrix-authentication-service-integration"><a class="header" href="#msc3861-auth-delegation-must-be-migrated-to-stable-matrix-authentication-service-integration">MSC3861 Auth Delegation must be migrated to stable Matrix Authentication Service integration</a></h2>
 <p>Support for the deprecated MSC3861 Auth Delegation (<code>experimental_features.msc3861</code>)
@@ -4421,13 +4574,15 @@ shown.</p>
 </code></pre>
 <hr>
 <h3 id="require_auth_for_profile_requests"><a class="header" href="#require_auth_for_profile_requests"><code>require_auth_for_profile_requests</code></a></h3>
-<p><em>(boolean)</em> Whether to require authentication to retrieve profile data (avatars, display names) of other users through the client API. Note that profile data is also available via the federation API, unless <code>allow_profile_lookup_over_federation</code> is set to false. Defaults to <code>false</code>.</p>
+<p><em>(boolean)</em> Whether to require authentication to retrieve profile data (avatars, display names) of other users through the client API. Note that profile data is also available via the federation API, unless <code>allow_profile_lookup_over_federation</code> is set to false.
+This option must be enabled in order to use <code>limit_profile_requests_to_users_who_share_rooms</code>. Defaults to <code>false</code>.</p>
 <p>Example configuration:</p>
 <pre><code class="language-yaml">require_auth_for_profile_requests: true
 </code></pre>
 <hr>
 <h3 id="limit_profile_requests_to_users_who_share_rooms"><a class="header" href="#limit_profile_requests_to_users_who_share_rooms"><code>limit_profile_requests_to_users_who_share_rooms</code></a></h3>
-<p><em>(boolean)</em> Use this option to require a user to share a room with another user in order to retrieve their profile information. Only checked on Client-Server requests. Profile requests from other servers should be checked by the requesting server. Defaults to <code>false</code>.</p>
+<p><em>(boolean)</em> Use this option to require a user to share a room with another user in order to retrieve their profile information. Only checked on Client-Server requests. Profile requests from other servers should be checked by the requesting server.
+The check can only be applied to authenticated requests, so this option requires <code>require_auth_for_profile_requests</code> to be enabled as well. Synapse will refuse to start if this option is enabled without it. Defaults to <code>false</code>.</p>
 <p>Example configuration:</p>
 <pre><code class="language-yaml">limit_profile_requests_to_users_who_share_rooms: true
 </code></pre>
@@ -4436,6 +4591,14 @@ shown.</p>
 <p><em>(boolean)</em> Use this option to prevent a user’s profile data from being retrieved and displayed in a room until they have joined it. By default, a user’s profile data is included in an invite event, regardless of the values of the above two settings, and whether or not the users share a server. Defaults to <code>true</code>.</p>
 <p>Example configuration:</p>
 <pre><code class="language-yaml">include_profile_data_on_invite: false
+</code></pre>
+<hr>
+<h3 id="include_profile_updates_in_sync"><a class="header" href="#include_profile_updates_in_sync"><code>include_profile_updates_in_sync</code></a></h3>
+<p><em>(boolean)</em> Use this option to include updates of other users’ profiles in sync responses, for users who share rooms.
+For legacy sync clients, requires <a href="https://github.com/matrix-org/matrix-spec-proposals/pull/4429">MSC4429</a> compatibility. For sliding sync clients, requires <a href="https://github.com/matrix-org/matrix-spec-proposals/pull/4262">MSC4262</a> compatibility. Note, profile updates via sync are currently limited to local users only.
+This feature is under development and should be used with caution on busy servers or servers which depend on <code>limit_profile_requests_to_users_who_share_rooms</code> for ensuring profile information doesn’t leak across rooms. Defaults to <code>false</code>.</p>
+<p>Example configuration:</p>
+<pre><code class="language-yaml">include_profile_updates_in_sync: true
 </code></pre>
 <hr>
 <h3 id="allow_public_rooms_without_auth"><a class="header" href="#allow_public_rooms_without_auth"><code>allow_public_rooms_without_auth</code></a></h3>
@@ -4455,8 +4618,9 @@ shown.</p>
 <p>Known room versions are listed <a href="https://spec.matrix.org/latest/rooms/#complete-list-of-room-versions">here</a></p>
 <p>For example, for room version 1, <code>default_room_version</code> should be set to “1”.</p>
 <p><em>Changed in Synapse 1.76:</em> the default version room version was increased from <a href="https://spec.matrix.org/v1.5/rooms/v9/">9</a> to <a href="https://spec.matrix.org/v1.5/rooms/v10/">10</a>.
-<em>Changed in Synapse 1.157:</em> the default version room version was increased from <a href="https://spec.matrix.org/v1.12/rooms/v10/">10</a> to <a href="https://spec.matrix.org/v1.12/rooms/v11/">11</a>.</p>
-<p>Defaults to <code>"11"</code>.</p>
+<em>Changed in Synapse 1.157:</em> the default version room version was increased from <a href="https://spec.matrix.org/v1.12/rooms/v10/">10</a> to <a href="https://spec.matrix.org/v1.12/rooms/v11/">11</a>.
+<em>Changed in Synapse 1.162:</em> the default room version was increased from <a href="https://spec.matrix.org/v1.16/rooms/v11/">11</a> to <a href="https://spec.matrix.org/v1.16/rooms/v12/">12</a></p>
+<p>Defaults to <code>"12"</code>.</p>
 <p>Example configuration:</p>
 <pre><code class="language-yaml">default_room_version: '8'
 </code></pre>
@@ -4674,7 +4838,7 @@ shown.</p>
 </code></pre>
 <hr>
 <h3 id="manhole"><a class="header" href="#manhole"><code>manhole</code></a></h3>
-<p><em>(integer|null)</em> Turn on the Twisted telnet manhole service on the given port.</p>
+<p><em>(integer|null)</em> Turn on the Twisted manhole service on the given port.</p>
 <p>This can also be set by the <code>--manhole</code> argument when starting Synapse.</p>
 <p>Defaults to <code>null</code>.</p>
 <p>Example configuration:</p>
@@ -5079,6 +5243,15 @@ For more details, see the <a href="#using-a-forward-proxy-with-synapse">forward 
 <pre><code class="language-yaml">redaction_retention_period: 28d
 </code></pre>
 <hr>
+<h3 id="redaction_allowed_period"><a class="header" href="#redaction_allowed_period"><code>redaction_allowed_period</code></a></h3>
+<p>How long after an <code>m.room.message</code> was sent a local user is still allowed to redact it. If a local user tries to redact a <code>m.room.message</code> older than this period Synapse responds with <code>403 M_FORBIDDEN</code> and does not redact the event.</p>
+<p>Only applies to <code>m.room.message</code> events redacted by local users.  Redactions of other event types and redactions received over federation are unaffected. When the target of the redaction is an edit (<code>m.replace</code>), the age and type are taken from the original event and not the edit.</p>
+<p>Set to <code>null</code> (the default) to disable, allowing events to be redacted at any time.</p>
+<p>Defaults to <code>null</code>.</p>
+<p>Example configuration:</p>
+<pre><code class="language-yaml">redaction_allowed_period: 7d
+</code></pre>
+<hr>
 <h3 id="forgotten_room_retention_period"><a class="header" href="#forgotten_room_retention_period"><code>forgotten_room_retention_period</code></a></h3>
 <p>How long to keep locally forgotten rooms before purging them from the DB. A value of <code>null</code> means it’s disabled. Defaults to <code>null</code>.</p>
 <p>Example configuration:</p>
@@ -5092,7 +5265,7 @@ For more details, see the <a href="#using-a-forward-proxy-with-synapse">forward 
 </code></pre>
 <hr>
 <h3 id="request_token_inhibit_3pid_errors"><a class="header" href="#request_token_inhibit_3pid_errors"><code>request_token_inhibit_3pid_errors</code></a></h3>
-<p><em>(boolean)</em> Inhibits the <code>/requestToken</code> endpoints from returning an error that might leak information about whether an e-mail address is in use or not on this homeserver. Note that for some endpoints the error situation is the e-mail already being used, and for others the error is entering the e-mail being unused. If this option is enabled, instead of returning an error, these endpoints will act as if no error happened and return a fake session ID (<code>sid</code>) to clients. Defaults to <code>false</code>.</p>
+<p><em>(boolean)</em> Inhibits the <code>/requestToken</code> endpoints from returning an error that might leak information about whether an e-mail address is in use or not on this homeserver. Note that for some endpoints the error situation is the e-mail already being used, and for others the error is entering the e-mail being unused. If this option is enabled, instead of returning an error, these endpoints will act as if no error happened and return a fake session ID (<code>sid</code>) to clients. Defaults to <code>true</code>.</p>
 <p>Example configuration:</p>
 <pre><code class="language-yaml">request_token_inhibit_3pid_errors: true
 </code></pre>
@@ -5242,9 +5415,11 @@ For more details, see the <a href="#using-a-forward-proxy-with-synapse">forward 
 <p>Options related to federation.</p>
 <hr>
 <h3 id="federation_domain_whitelist"><a class="header" href="#federation_domain_whitelist"><code>federation_domain_whitelist</code></a></h3>
-<p><em>(array)</em> Restrict federation to the given whitelist of domains. N.B. we recommend also firewalling your federation listener to limit inbound federation traffic as early as possible, rather than relying purely on this application-layer restriction. If not specified, the default is to whitelist everything.</p>
+<p><em>(null|array)</em> Restrict federation to the given whitelist of domains. N.B. we recommend also firewalling your federation listener to limit inbound federation traffic as early as possible, rather than relying purely on this application-layer restriction.</p>
+<p>If specified as an empty list (<code>[]</code>), federation will be denied with all servers. Specifying an empty list (<code>[]</code>) here is the recommended way of disabling federation.</p>
+<p>If unset or null, allows federation with all servers.</p>
 <p>Note: this does not stop a server from joining rooms that servers not on the whitelist are in. As such, this option is really only useful to establish a “private federation”, where a group of servers all whitelist each other and have the same whitelist.</p>
-<p>Defaults to <code>[]</code>.</p>
+<p>Defaults to <code>null</code>.</p>
 <p>Example configuration:</p>
 <pre><code class="language-yaml">federation_domain_whitelist:
 - lon.example.com
@@ -5925,7 +6100,7 @@ For more details, see the <a href="#using-a-forward-proxy-with-synapse">forward 
 <hr>
 <h3 id="rc_delayed_event_mgmt"><a class="header" href="#rc_delayed_event_mgmt"><code>rc_delayed_event_mgmt</code></a></h3>
 <p><em>(object)</em> Ratelimiting settings for delayed event management.</p>
-<p>This is a ratelimiting option that ratelimits attempts to restart, cancel, or view delayed events based on the sending client’s account, or its source IP when requests are unauthenticated.</p>
+<p>This is a ratelimiting option that ratelimits attempts to restart, cancel, or view delayed events based on the sending client’s account.</p>
 <p>Attempts to create or send delayed events are ratelimited not by this setting, but by <code>rc_message</code>.</p>
 <p>Setting this to a high value allows clients to make delayed event management requests often (such as repeatedly restarting a delayed event with a short timeout, or restarting several different delayed events all at once) without the risk of being ratelimited.</p>
 <p>This setting has the following sub-options:</p>
@@ -6010,6 +6185,25 @@ Setting this to a high value allows users to report content quickly, possibly in
 <pre><code class="language-yaml">rc_user_directory:
   per_second: 0.016
   burst_count: 200.0
+</code></pre>
+<hr>
+<h3 id="rc_profile"><a class="header" href="#rc_profile"><code>rc_profile</code></a></h3>
+<p><em>(object)</em> This option allows admins to ratelimit profile lookups by clients.</p>
+<p>Requests are limited per user when the request is authenticated, otherwise per client IP address.</p>
+<p><em>Added in Synapse 1.162.0.</em></p>
+<p>This setting has the following sub-options:</p>
+<ul>
+<li>
+<p><code>per_second</code> (number): Maximum number of requests a client can send per second.</p>
+</li>
+<li>
+<p><code>burst_count</code> (number): Maximum number of requests a client can send before being throttled.</p>
+</li>
+</ul>
+<p>Default configuration:</p>
+<pre><code class="language-yaml">rc_profile:
+  per_second: 1.0
+  burst_count: 500.0
 </code></pre>
 <hr>
 <h3 id="federation_rr_transactions_per_room_per_second"><a class="header" href="#federation_rr_transactions_per_room_per_second"><code>federation_rr_transactions_per_room_per_second</code></a></h3>
@@ -6452,7 +6646,12 @@ These limits are applied in addition to the <code>max_upload_size</code> limit a
 <p><code>type</code> (string): The type of transport to use to connect to the selective forwarding unit (SFU).</p>
 </li>
 <li>
-<p><code>livekit_service_url</code> (string): The base URL of the LiveKit service. Should only be used with LiveKit-based transports.</p>
+<p><code>url</code> (string): The WebSocket URL of the LiveKit SFU. If type is “livekit”, either this or <code>livekit_service_url</code> is required.</p>
+<p>Clients that support <code>url</code> will use the Client-Server API to (indirectly) interact with the LiveKit authorization service. The service needs to be set up as an application service in order to support these endpoints. See https://github.com/element-hq/lk-jwt-service for further details.</p>
+</li>
+<li>
+<p><code>livekit_service_url</code> (string): Deprecated. The HTTP URL of the LiveKit authorization service. If type is “livekit”, either this or <code>url</code> is required.</p>
+<p>Clients that don’t support <code>url</code> will use <code>livekit_service_url</code> to directly interact with the LiveKit authorization service. This mode of operation is deprecated and should only be used for backwards compatibility.</p>
 </li>
 </ul>
 </li>
@@ -6461,6 +6660,7 @@ These limits are applied in addition to the <code>max_upload_size</code> limit a
 <pre><code class="language-yaml">matrix_rtc:
   transports:
   - type: livekit
+    url: wss://livekit.example.com
     livekit_service_url: https://matrix-rtc.example.com/livekit/jwt
 </code></pre>
 <hr>
@@ -7601,6 +7801,7 @@ It’s recommended to leave this option as it is. We expect to remove this optio
 <li>“off”: this option will take no effect</li>
 </ul>
 <p>Note that this option will only affect rooms created after it is set. It will also not affect rooms created by other servers.</p>
+<p>A client may supply its own <code>m.room.encryption</code> event in the <code>initial_state</code> of its <code>/createRoom</code> request. If that event is valid (it specifies an <code>algorithm</code> as a string), it takes precedence and this option will not overwrite it, allowing the client to, for example, choose a different encryption algorithm. An empty or otherwise invalid <code>m.room.encryption</code> event does not disable forced encryption: the default will still be applied on top of it.</p>
 <p>Defaults to <code>"off"</code>.</p>
 <p>Example configuration:</p>
 <pre><code class="language-yaml">encryption_enabled_by_default_for_room_type: invite
@@ -8089,6 +8290,17 @@ It’s recommended to leave this option as it is. We expect to remove this optio
 <pre><code class="language-yaml">run_background_tasks_on: worker1
 </code></pre>
 <hr>
+<h3 id="task_scheduler"><a class="header" href="#task_scheduler"><code>task_scheduler</code></a></h3>
+<p><em>(object)</em> Configuration for the task scheduler.</p>
+<p>This setting has the following sub-options:</p>
+<ul>
+<li><code>max_concurrent_tasks</code> (integer): The maximum number of tasks that can run concurrently in the task scheduler. Setting this too high may swamp the database connection pool. Defaults to <code>5</code>.</li>
+</ul>
+<p>Example configuration:</p>
+<pre><code class="language-yaml">task_scheduler:
+  max_concurrent_tasks: 5
+</code></pre>
+<hr>
 <h3 id="update_user_directory_from_worker"><a class="header" href="#update_user_directory_from_worker"><code>update_user_directory_from_worker</code></a></h3>
 <p><em>(string|null)</em> The <a href="#updating-the-user-directory">worker</a> that is used to update the user directory. If not provided this defaults to the main process.</p>
 <p><em>Added in Synapse 1.59.0.</em></p>
@@ -8119,6 +8331,7 @@ It’s recommended to leave this option as it is. We expect to remove this optio
 <p><em>Changed in Synapse 1.84.0: Added use_tls, certificate_file, private_key_file, ca_file and ca_path attributes</em></p>
 <p><em>Changed in Synapse 1.85.0: Added path option to use a local Unix socket</em></p>
 <p><em>Changed in Synapse 1.116.0: Added password_path</em></p>
+<p><em>Changed in Synapse 1.162.0: Added username</em></p>
 <p>This setting has the following sub-options:</p>
 <ul>
 <li>
@@ -8132,6 +8345,9 @@ It’s recommended to leave this option as it is. We expect to remove this optio
 </li>
 <li>
 <p><code>path</code> (string): The full path to a local Unix socket file. <strong>If this is used, <code>host</code> and <code>port</code> are ignored.</strong> Defaults to <code>"/tmp/redis.sock"</code>.</p>
+</li>
+<li>
+<p><code>username</code> (string|null): Optional username if configured on the Redis instance (Redis 6+ ACL authentication). Requires <code>password</code> (or <code>password_path</code>) to also be set. Defaults to <code>null</code>.</p>
 </li>
 <li>
 <p><code>password</code> (string|null): Optional password if configured on the Redis instance. Defaults to <code>null</code>.</p>
@@ -8163,6 +8379,7 @@ It’s recommended to leave this option as it is. We expect to remove this optio
   enabled: true
   host: localhost
   port: 6379
+  username: &lt;username&gt;
   password_path: &lt;path_to_the_password_file&gt;
   dbid: &lt;dbid&gt;
 </code></pre>
@@ -8974,18 +9191,15 @@ has more information on setting up SiWA.</p>
 <h3 id="auth0"><a class="header" href="#auth0">Auth0</a></h3>
 <p><a href="https://auth0.com/">Auth0</a> is a hosted SaaS IdP solution.</p>
 <ol>
-<li>
-<p>Create a regular web application for Synapse</p>
-</li>
-<li>
-<p>Set the Allowed Callback URLs to <code>[synapse public baseurl]/_synapse/client/oidc/callback</code></p>
-</li>
-<li>
-<p>Add a rule with any name to add the <code>preferred_username</code> claim.
-(See https://auth0.com/docs/customize/rules/create-rules for more information on how to create rules.)</p>
-<details>
- <summary>Code sample</summary>
-<pre><code class="language-js">function addPersistenceAttribute(user, context, callback) {
+<li>Create a regular web application for Synapse</li>
+<li>Set the Allowed Callback URLs to <code>[synapse public baseurl]/_synapse/client/oidc/callback</code></li>
+<li>Add a rule with any name to add the <code>preferred_username</code> claim.
+(See https://auth0.com/docs/customize/rules/create-rules for more information on how to create rules.)</li>
+</ol>
+  <details>
+    <summary>Code sample</summary>
+<pre><code>```js
+function addPersistenceAttribute(user, context, callback) {
   user.user_metadata = user.user_metadata || {};
   user.user_metadata.preferred_username = user.user_metadata.preferred_username || user.user_id;
   context.idToken.preferred_username = user.user_metadata.preferred_username;
@@ -8998,10 +9212,9 @@ has more information on setting up SiWA.</p>
         callback(err);
     });
 }
+```
 </code></pre>
-</details></li>
-</ol>
-  
+  </details>
 <p>Synapse config:</p>
 <pre><code class="language-yaml">oidc_providers:
   - idp_id: auth0
@@ -12220,9 +12433,6 @@ may change without notice.
 </span></strong></p>
 <p>Called when a user attempts to upload media that would exceed a
 <a href="#media_upload_limits">configured media upload limit</a>.</p>
-<p>This callback will only be called on workers which handle
-<a href="https://spec.matrix.org/v1.15/client-server-api/#post_matrixmediav3upload">POST /_matrix/media/v3/upload</a>
-requests.</p>
 <p>This could be used to inform the user that they have reached a media upload limit through
 some external method.</p>
 <p>The arguments passed to this callback are:</p>
@@ -12504,6 +12714,7 @@ information.</p>
 ^/_matrix/client/(r0|v3)/delete_devices$
 ^/_matrix/client/(api/v1|r0|v3|unstable)/devices(/|$)
 ^/_matrix/client/versions$
+^/_matrix/client/(v1|unstable/org.matrix.msc2965)/auth_metadata$
 ^/_matrix/client/(api/v1|r0|v3|unstable)/voip/turnServer$
 ^/_matrix/client/(api/v1|r0|v3|unstable)/rooms/.*/event/
 ^/_matrix/client/(api/v1|r0|v3|unstable)/joined_rooms$
@@ -12546,8 +12757,12 @@ information.</p>
 # User directory search requests
 ^/_matrix/client/(r0|v3|unstable)/user_directory/search$
 
-# Unstable MSC4140 support
-^/_matrix/client/unstable/org.matrix.msc4140/delayed_events(/.*/restart)?$
+# Unstable MSC4140 support (delayed event scheduling &amp; management)
+^/_matrix/client/unstable/org.matrix.msc4140/rooms/.*/delayed_event/
+^/_matrix/client/unstable/org.matrix.msc4140/delayed_events(/[^/]+(/restart)?)?$
+
+# Stabilised Delegated Authentication support (`matrix_authentication_service.enabled: true`)
+^/_synapse/mas/
 </code></pre>
 <p>Additionally, the following REST endpoints can be handled for GET requests:</p>
 <pre><code># Push rules requests
@@ -12571,7 +12786,7 @@ for the room are in flight:</p>
 </code></pre>
 <p>Additionally, the following endpoints should be included if Synapse is configured
 to use SSO (you only need to include the ones for whichever SSO provider you’re
-using):</p>
+using) and delegated authentication isn’t enabled:</p>
 <pre><code># for all SSO providers
 ^/_matrix/client/(api/v1|r0|v3|unstable)/login/sso/redirect
 ^/_synapse/client/pick_idp$
@@ -12803,9 +13018,14 @@ configured as stream writer for the <code>device_lists</code> stream:</p>
 </code></pre>
 <h5 id="the-quarantined_media_changes-stream"><a class="header" href="#the-quarantined_media_changes-stream">The <code>quarantined_media_changes</code> stream</a></h5>
 <p>The <code>quarantined_media_changes</code> stream supports multiple writers. The following endpoints
-can be handled by any worker, but should be routed directly to one of the workers
-configured as stream writer for the <code>quarantined_media_changes</code> stream:</p>
+must be routed directly to one of the workers configured as stream writer for the
+<code>quarantined_media_changes</code> stream (which must also be able to run the media
+repository, as these endpoints are only registered on media-capable workers):</p>
 <pre><code>^/_synapse/admin/v1/quarantine_media/.*$
+^/_synapse/admin/v1/room/.*/media/quarantine$
+^/_synapse/admin/v1/user/.*/media/quarantine$
+^/_synapse/admin/v1/media/quarantine/.*$
+^/_synapse/admin/v1/media/unquarantine/.*$
 </code></pre>
 <h4 id="restrict-outbound-federation-traffic-to-a-specific-set-of-workers"><a class="header" href="#restrict-outbound-federation-traffic-to-a-specific-set-of-workers">Restrict outbound federation traffic to a specific set of workers</a></h4>
 <p>The
@@ -13648,7 +13868,6 @@ basis. The currently supported features are:</p>
 <li><a href="https://github.com/matrix-org/matrix-spec-proposals/pull/3881">MSC3881</a>: enable remotely toggling push notifications
 for another client</li>
 <li><a href="https://github.com/matrix-org/matrix-spec-proposals/pull/3575">MSC3575</a>: enable experimental sliding sync support</li>
-<li><a href="https://github.com/matrix-org/matrix-spec-proposals/pull/4222">MSC4222</a>: adding <code>state_after</code> to sync v2</li>
 </ul>
 <p>To use it, you will need to authenticate by providing an <code>access_token</code>
 for a server admin: see <a href="usage/administration/admin_api">Admin API</a>.</p>
@@ -15431,13 +15650,15 @@ for a server admin: see <a href="usage/administration/admin_api">Admin API</a>.<
 <p><strong>Query parameters:</strong></p>
 <ul>
 <li>
-<p><code>action_name</code>: string - Is optional. Returns only the scheduled tasks with the given action name.</p>
+<p><code>action_name</code>: string - Is optional. Returns only the scheduled tasks with the given action name.
+May be given multiple times to return tasks matching any of the given action names.</p>
 </li>
 <li>
 <p><code>resource_id</code>: string - Is optional. Returns only the scheduled tasks with the given resource id.</p>
 </li>
 <li>
-<p><code>status</code>: string - Is optional. Returns only the scheduled tasks matching the given status, one of</p>
+<p><code>status</code>: string - Is optional. Returns only the scheduled tasks matching the given status.
+May be given multiple times to return tasks matching any of the given statuses. The status must be one of</p>
 <ul>
 <li>“scheduled” - Task is scheduled but not active</li>
 <li>“active” - Task is active and probably running, and if not will be run on next scheduler loop run</li>
@@ -16942,8 +17163,8 @@ or until Synapse is restarted (whichever happens first).</p>
 </code></pre>
 <p>A response body like the following is returned:</p>
 <pre><code>{
-  "status": "active",
-  "failed_redactions": [],
+  "status": "complete",
+  "failed_redactions": {},
 }
 </code></pre>
 <p><strong>Parameters</strong></p>
@@ -16954,9 +17175,13 @@ or until Synapse is restarted (whichever happens first).</p>
 <p><strong>Response</strong></p>
 <p>The following fields are returned in the JSON response body:</p>
 <ul>
-<li><code>status</code> - string - one of scheduled/active/completed/failed, indicating the status of the redaction job</li>
-<li><code>failed_redactions</code> - dictionary - the keys of the dict are event ids the process was unable to redact, if any, and the values are
-the corresponding error that caused the redaction to fail</li>
+<li><code>status</code> - string (required) - one of <code>scheduled</code>/<code>active</code>/<code>complete</code>/<code>failed</code>,
+indicating the status of the redaction job</li>
+<li><code>failed_redactions</code> - dictionary (optional) - when the redaction status is <code>complete</code>,
+contains the keys of the dict are event ids the process was unable to redact, if any,
+and the values are the corresponding error that caused the redaction to fail</li>
+<li><code>error</code> - string (optional) - when the redaction <code>status</code> is <code>failed</code>, this field will
+contains a description of the error encountered during the redaction process.</li>
 </ul>
 <p><em>Added in Synapse 1.116.0.</em></p>
 <div style="break-before: page; page-break-before: always;"></div>
@@ -18103,7 +18328,7 @@ pipx install poetry
 </code></pre>
 <p>but see poetry’s <a href="https://python-poetry.org/docs/#installation">installation instructions</a>
 for other installation methods.</p>
-<p>Developing Synapse requires Poetry version 1.3.2 or later.</p>
+<p>The minimum poetry version is specified by the <code>requires-poetry</code> line in <a href="https://github.com/element-hq/synapse/blob/develop/pyproject.toml">pyproject.toml</a>.</p>
 <p>Next, open a terminal and install dependencies as follows:</p>
 <pre><code class="language-sh">cd path/where/you/have/cloned/the/repository
 poetry install --extras all
@@ -18914,13 +19139,10 @@ reference only.</p>
 <h3 id="building-full-schema-dumps"><a class="header" href="#building-full-schema-dumps">Building full schema dumps</a></h3>
 <p>If you want to recreate these schemas, they need to be made from a database that
 has had all background updates run.</p>
-<p>To do so, use <code>scripts-dev/make_full_schema.sh</code>. This will produce new
-<code>full.sql.postgres</code> and <code>full.sql.sqlite</code> files.</p>
-<p>Ensure postgres is installed, then run:</p>
-<pre><code class="language-sh">./scripts-dev/make_full_schema.sh -p postgres_username -o output_dir/
-</code></pre>
-<p>NB at the time of writing, this script predates the split into separate <code>state</code>/<code>main</code>
-databases so will require updates to handle that correctly.</p>
+<p>To do so, use the <code>make_full_schema.sh</code> script. This will produce new
+<code>full.sql.postgres</code> and <code>full.sql.sqlite</code> files, after having applied ALL
+schema deltas and background updates.</p>
+<p>Run <code>poetry run scripts-dev/make_full_schema.sh -h</code> for usage instructions.</p>
 <h2 id="delta-files"><a class="header" href="#delta-files">Delta files</a></h2>
 <p>Delta files define the steps required to upgrade the database from an earlier version.
 They can be written as either a file containing a series of SQL statements, or a Python
@@ -19720,6 +19942,9 @@ await wait_for_room("!aAAaaAaaaAAAaAaAA:matrix.org")
 await wait_for_room("!aAAaaAaaaAAAaAaAA:matrix.org")
 </code></pre>
 </td>
+</tr>
+
+</table>
 
 <h3 id="uncancelled-processing"><a class="header" href="#uncancelled-processing">Uncancelled processing</a></h3>
 <p>Some <code>async</code> functions may kick off some <code>async</code> processing which is
@@ -19821,15 +20046,19 @@ with LoggingContext("request-1"):
 
 </table>
 
-</tr>
-</table>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="log-contexts"><a class="header" href="#log-contexts">Log Contexts</a></h1>
 <p>To help track the processing of individual requests, synapse uses a
 ‘<code>log context</code>’ to track which request it is handling at any given
-moment. This is done via a thread-local variable; a <code>logging.Filter</code> is
-then used to fish the information back out of the thread-local variable
-and add it to each log record.</p>
+moment. The “current” log context is stored in the Rust extension
+(<code>synapse.synapse_rust.logcontext</code>), which resolves it from the current
+tokio task (if we are running inside one) and otherwise from the current OS
+thread; a <code>logging.Filter</code> is then used to fish the information back out and
+add it to each log record. Storing it in Rust means a single source of truth is
+visible from both Python (the reactor and its thread pool) and Rust (tokio
+tasks), so log records emitted from either — including from Rust code polled on
+a worker thread — are attributed to the right request. See
+<a href="#the-rust-side">the Rust side</a> below.</p>
 <p>Logcontexts are also used for CPU and database accounting, so that we
 can track which requests were responsible for high CPU use or database
 activity.</p>
@@ -20269,6 +20498,26 @@ chain are dropped. Dropping the the reference to an awaitable you’re
 supposed to be awaiting is bad practice, so this doesn’t
 actually happen too much. Unfortunately, when it does happen, it will
 lead to leaked logcontexts which are incredibly hard to track down.</p>
+<h2 id="the-rust-side"><a class="header" href="#the-rust-side">The Rust side</a></h2>
+<p>The “current” logcontext is stored in the Rust extension rather than in a
+Python thread-local, so that it is visible from both Python and Rust.
+<code>current_context()</code> and <code>set_current_context()</code> are imported from
+<code>synapse.logging.context</code> as usual — the Rust storage is an implementation
+detail that Python code does not need to care about.</p>
+<p><code>set_current_context</code> only ever runs on a Python thread, i.e. the reactor or one
+of its thread pools, where it does the <code>getrusage</code> CPU accounting. It is never
+called from a tokio worker thread. Therefore, CPU accounting is not captured
+when executing purely Rust work.</p>
+<p>What Rust code <em>does</em> need to be aware of is that when spawning a future onto
+the tokio runtime, the current logcontext must be captured and carried along, so
+that log records emitted while the future is polled (including any <code>log::</code>
+records from dependencies, and any Python invoked back from Rust) are attributed
+correctly. Don’t use a bare <code>tokio::spawn</code>. Instead use
+<code>LogContextHandle::capture(py)</code> plus <code>LogContextHandle::scope</code>, which capture
+the caller’s logcontext from the Python side and record it on the spawned task;
+this is what <code>create_deferred</code> does. <code>current_context()</code> returns the task’s
+captured context first, so <code>LoggingContextFilter</code> — and therefore <code>pyo3-log</code> —
+sees the right context on worker threads without any per-log-record work.</p>
 <h2 id="debugging-logcontext-issues"><a class="header" href="#debugging-logcontext-issues">Debugging logcontext issues</a></h2>
 <p>Debugging logcontext issues can be tricky as leaking or losing a logcontext will surface
 downstream and can point to an unrelated part of the codebase. It’s best to enable debug
@@ -20279,6 +20528,18 @@ backwards in the logs from the point where the issue is observed to find the roo
     # Unlike other loggers, this one needs to be explicitly configured to see debug logs.
     synapse.logging.context.debug:
         level: DEBUG
+</code></pre>
+<p>Note that some of these traces (<code>LoggingContext(...).__enter__</code>/<code>__exit__</code>) are
+emitted from Rust via <code>pyo3-log</code>, which caches logger levels for performance.
+Configuring the logger in the logging config (as above) works — the cache is
+flushed whenever the config is (re)loaded, including on <code>SIGHUP</code> — but enabling
+the logger <em>at runtime</em> (e.g. <code>setLevel(logging.DEBUG)</code> from the manhole) will
+not surface the Rust-emitted traces until you also flush the cache:</p>
+<pre><code class="language-python">import logging
+from synapse.synapse_rust import reset_logging_config
+
+logging.getLogger("synapse.logging.context.debug").setLevel(logging.DEBUG)
+reset_logging_config()
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="replication-architecture"><a class="header" href="#replication-architecture">Replication Architecture</a></h1>
@@ -20448,11 +20709,12 @@ necessary registration and event handling.</p>
 <ul>
 <li>will need an <a href="https://github.com/element-hq/synapse/blob/4367fb2d078c52959aeca0fe6874539c53e8360d/synapse/storage/databases/main/thread_subscriptions.py#L75">ID generator</a>
 <ul>
-<li>may need <a href="https://github.com/element-hq/synapse/blob/4367fb2d078c52959aeca0fe6874539c53e8360d/synapse/config/workers.py#L177">writer configuration</a>, if there isn’t already an obvious source of configuration for which workers should be designated as writers to your new stream.
+<li>may need <a href="https://github.com/element-hq/synapse/blob/62a4bc46203880dd5034483b0e84156d03a3a8c6/synapse/config/workers.py#L184-L187">writer configuration</a>, if there isn’t already an obvious source of configuration for which workers should be designated as writers to your new stream.
 <ul>
 <li>if adding new writer configuration, add Docker-worker configuration, which lets us configure the writer worker in Complement tests: <a href="https://github.com/element-hq/synapse/blob/4367fb2d078c52959aeca0fe6874539c53e8360d/docker/configure_workers_and_start.py#L331">[1]</a>, <a href="https://github.com/element-hq/synapse/blob/4367fb2d078c52959aeca0fe6874539c53e8360d/docker/configure_workers_and_start.py#L440">[2]</a></li>
 </ul>
 </li>
+<li>Ensure that it’s been correctly added to <code>synapse/replication/tcp/handler.py</code> and it’s <code>streams_to_replicate</code> attribute to ensure that changes are actually replicated.</li>
 </ul>
 </li>
 </ul>
@@ -20692,6 +20954,8 @@ their current position and the given last position.</p>
 <p>Acknowledge receipt of some federation data</p>
 <h3 id="remote_server_up-s-c"><a class="header" href="#remote_server_up-s-c">REMOTE_SERVER_UP (S, C)</a></h3>
 <p>Inform other processes that a remote server may have come back online.</p>
+<h3 id="new_server_joined-s-c"><a class="header" href="#new_server_joined-s-c">NEW_SERVER_JOINED (S, C)</a></h3>
+<p>Informs other processes that a remote server has just joined a room.</p>
 <p>See <code>synapse/replication/tcp/commands.py</code> for a detailed description and
 the format of each command.</p>
 <h3 id="cache-invalidation-stream"><a class="header" href="#cache-invalidation-stream">Cache Invalidation Stream</a></h3>
